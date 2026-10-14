@@ -190,12 +190,12 @@ export function ZoomableView(props: {
     pinch.current = pointers.current.size === 2 ? pinchState() : null;
   };
 
-  const btn = "flex h-11 min-w-11 items-center justify-center rounded-lg bg-zinc-100 px-3 text-lg text-zinc-800 active:bg-zinc-200";
+  const btn = "flex h-11 min-w-11 items-center justify-center rounded-full border-[1.5px] border-ink/70 bg-cream px-3 text-lg text-ink active:bg-oat";
 
   return (
     <div className="space-y-2">
       <div
-        className="relative w-full overflow-hidden rounded-xl bg-white ring-1 ring-zinc-200"
+        className="relative w-full overflow-hidden rounded-2xl bg-white ring-[1.5px] ring-ink/70"
         // 編み図の縦横比に合わせた高さ（スマホで余白だらけにならないよう）。aspect-ratio + min-height は横幅を押し広げるので使わない
         style={{ height: `min(70svh, max(18rem, ${((height / width) * 100).toFixed(2)}vw))` }}
       >

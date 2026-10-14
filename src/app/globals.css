@@ -1,22 +1,70 @@
 @import "tailwindcss";
 
+/*
+ * くすんだセージ・テラコッタ・からし色に、生成りの紙のような背景。
+ * 編み図は紙のように見せたいので、ライトテーマ固定。
+ */
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
-  /* 編み図は紙のように白地で見せるので、ライトテーマ固定 */
   color-scheme: light;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), "Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono);
+  /* 背景・面 */
+  --color-paper: #e7e4d6;
+  --color-cream: #f8f5ea;
+  --color-oat: #ece8d9;
+  --color-oat-dark: #ddd8c4;
+  --color-line: #d3cdb8;
+  /* 文字 */
+  --color-ink: #2b2a25;
+  --color-muted: #6e6a5c;
+  /* アクセント */
+  --color-sage: #687a5d;
+  --color-sage-light: #dfe5d6;
+  --color-sage-dark: #4d5c44;
+  --color-terra: #cf7569;
+  --color-terra-light: #f6e1dc;
+  --color-terra-dark: #a5493e;
+  --color-mustard: #e3dc84;
+  --color-mustard-light: #f6f2cf;
+  --color-mustard-dark: #c9bf55;
+
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --font-sans: var(--font-zen-kaku), "Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
+  --font-display: var(--font-tilt-warp), var(--font-zen-kaku), system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--color-paper);
+  /* メリヤス編みの「V」をうっすら並べた地模様 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='20' viewBox='0 0 24 20'%3E%3Cpath d='M3 4c2 5 5 9 9 12M21 4c-2 5-5 9-9 12' fill='none' stroke='%23cfcab4' stroke-width='1.6' stroke-linecap='round' opacity='.55'/%3E%3C/svg%3E");
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-text-size-adjust: 100%;
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* ステッチ（縫い目）風の点線のふち */
+@utility stitched {
+  outline: 2px dashed color-mix(in srgb, var(--color-sage) 45%, transparent);
+  outline-offset: -9px;
+}
+
+/* 参考: 丸い枠付きボタン（からし色・黒い細枠・やわらかい影） */
+@utility btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--color-ink);
+  font-weight: 700;
+  box-shadow: 0 3px 8px rgb(43 42 37 / 0.18);
 }

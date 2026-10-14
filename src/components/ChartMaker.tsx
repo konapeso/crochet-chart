@@ -21,6 +21,7 @@ import {
 } from "@/lib/pattern";
 import { type Yarn, YARNS, yarnLabel } from "@/lib/yarns";
 import Link from "next/link";
+import { Blob, CrochetHook, YarnBall } from "./Decorations";
 import { NumberField } from "./NumberField";
 import { PatternEditor } from "./PatternEditor";
 import { PreviewCompare } from "./PreviewCompare";
@@ -44,28 +45,59 @@ const lineThreshold = (sensitivity: number) => 1 - (sensitivity / 100) * 0.8;
 /** 減色: 明るさの差を軽く見る（淡い塗りでも色みの近い毛糸を選ぶ） */
 const COLOR_KL = 2;
 
-function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
+/** 英語の見出し＋日本語の添え書き（参考サイトの「Unique / 新感覚の…」の形） */
+function Section({ num, en, title, children }: { num: number; en: string; title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">{title}</h2>
-        {aside}
+    <section className="stitched rounded-[28px] bg-cream px-5 pt-6 pb-6 shadow-[0_2px_10px_rgb(43_42_37/0.06)]">
+      <div className="mb-4 flex items-center gap-3">
+        <span className="relative grid h-12 w-12 shrink-0 place-items-center">
+          <Blob color="#687a5d" className="absolute inset-0 h-full w-full" />
+          <span className="relative font-display text-xl text-cream">{num}</span>
+        </span>
+        <div>
+          <h2 className="font-display text-2xl leading-none">{en}</h2>
+          <p className="mt-1 text-sm font-bold text-muted">{title}</p>
+        </div>
       </div>
       {children}
     </section>
   );
 }
 
+function Hero() {
+  return (
+    <div className="rounded-[32px] bg-oat px-6 pt-6 pb-8 text-center ring-1 ring-line">
+      <div className="flex items-end justify-center" aria-hidden>
+        <span className="relative grid h-24 w-24 -rotate-6 place-items-center">
+          <Blob color="#cf7569" className="absolute inset-0 h-full w-full" />
+          <YarnBall size={56} color="#e3dc84" className="relative" />
+        </span>
+        <span className="relative -ml-3 grid h-[4.5rem] w-[4.5rem] rotate-6 place-items-center">
+          <Blob color="#687a5d" variant="flower" className="absolute inset-0 h-full w-full" />
+          <CrochetHook size={40} color="#cf7569" className="relative" />
+        </span>
+      </div>
+      <h1 className="mt-4 font-display text-[2.5rem] leading-[0.95] sm:text-5xl">
+        Crochet
+        <br />
+        Chart Maker
+      </h1>
+      <p className="mt-3 text-base font-bold">写真から、かぎ針の編み図を。</p>
+      <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-muted">撮って・毛糸を選んで・手直しして。編みながら段も数えられます</p>
+    </div>
+  );
+}
+
 function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
   return (
-    <div className="grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-zinc-100 p-1">
+    <div className="grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-oat p-1 ring-1 ring-line">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`min-h-11 rounded-lg px-2 text-sm font-medium ${value === o.value ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500"}`}
+          className={`min-h-11 rounded-full px-2 text-sm font-bold ${value === o.value ? "border-[1.5px] border-ink bg-mustard text-ink" : "text-muted"}`}
         >
           {o.label}
         </button>
@@ -82,13 +114,13 @@ function YarnOption({ yarn, selected, onClick, role }: { yarn: Yarn; selected: b
       aria-checked={selected}
       onClick={onClick}
       className={`flex min-h-11 items-center gap-2 rounded-full py-1 pr-3 pl-1.5 text-left text-xs ring-1 ${
-        selected ? "bg-rose-50 font-medium text-zinc-900 ring-2 ring-rose-500" : "bg-white text-zinc-500 ring-zinc-200"
+        selected ? "bg-terra-light font-medium text-ink ring-2 ring-terra" : "bg-cream text-muted ring-line"
       }`}
     >
       <YarnSwatch yarn={yarn} size={26} />
       <span className="leading-tight">
         {yarnLabel(yarn)}
-        <span className="block text-[11px] text-zinc-500">
+        <span className="block text-[11px] text-muted">
           {yarn.colorName}・残 {yarn.remainingGrams}g
         </span>
       </span>
@@ -100,7 +132,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   return (
     <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
       <span>{label}</span>
-      <input type="checkbox" className="h-5 w-5 accent-rose-600" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" className="h-5 w-5 accent-terra" checked={checked} onChange={(e) => onChange(e.target.checked)} />
     </label>
   );
 }
@@ -202,10 +234,10 @@ export function ChartMaker() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 px-4 pt-4 pb-16">
-      <p className="text-sm text-zinc-500">写真からかぎ針編みの編み図を作ります</p>
+      <Hero />
 
-      <Section title="1. 写真">
-        <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 text-base font-semibold text-white active:bg-rose-700">
+      <Section num={1} en="Photo" title="写真を選ぶ">
+        <label className="btn-pill w-full cursor-pointer bg-mustard px-4 text-base text-ink active:bg-mustard-dark">
           <svg viewBox="0 0 24 24" width={22} height={22} aria-hidden fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinejoin="round">
             <path d="M3 8h3.5L8 5.5h8L17.5 8H21v11H3z" />
             <circle cx={12} cy={13} r={3.5} />
@@ -221,12 +253,12 @@ export function ChartMaker() {
             }}
           />
         </label>
-        <p className="mt-2 text-xs text-zinc-500">紙の影を補正して白くし、細い線を拾って「線の色」で編みます</p>
-        {loading && <p className="mt-2 text-sm text-zinc-500">読み込み中…</p>}
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        <p className="mt-2 text-xs text-muted">紙の影を補正して白くし、細い線を拾って「線の色」で編みます</p>
+        {loading && <p className="mt-2 text-sm text-muted">読み込み中…</p>}
+        {error && <p className="mt-2 text-sm text-terra-dark">{error}</p>}
       </Section>
 
-      <Section title="2. 設定">
+      <Section num={2} en="Settings" title="編み方と毛糸を決める">
         <div className="space-y-4">
           <Segmented
             value={mode}
@@ -242,18 +274,18 @@ export function ChartMaker() {
             <NumberField label="段数" value={rows} min={5} max={MAX_ROWS} onChange={setRows} />
           </div>
           {source && (
-            <button type="button" onClick={fitRows} className="min-h-11 w-full rounded-lg bg-zinc-100 px-3 text-sm text-zinc-700 active:bg-zinc-200">
+            <button type="button" onClick={fitRows} className="min-h-11 w-full rounded-full border-[1.5px] border-ink/70 bg-cream px-3 text-sm font-bold text-ink active:bg-oat">
               写真の縦横比に合わせて段数を決める
             </button>
           )}
 
           <div>
-            <p className="mb-1 text-xs font-medium text-zinc-600">{filet ? "長編み" : "細編み"}のゲージ（10cm 四方）</p>
+            <p className="mb-1 text-xs font-medium text-muted">{filet ? "長編み" : "細編み"}のゲージ（10cm 四方）</p>
             <div className="grid grid-cols-2 gap-3">
               <NumberField label="目" value={gauge.stitches} min={5} max={50} onChange={(v) => setGauge({ stitches: v })} />
               <NumberField label="段" value={gauge.rows} min={3} max={60} onChange={(v) => setGauge({ rows: v })} />
             </div>
-            <p className="mt-1.5 text-xs text-zinc-500">
+            <p className="mt-1.5 text-xs text-muted">
               仕上がり 約 {size.w} × {size.h} cm{filet && `（1段 長編み ${colsLimited * 3 + 1} 目分）`}
             </p>
           </div>
@@ -262,7 +294,7 @@ export function ChartMaker() {
             <div>
               <label className="flex items-center justify-between text-sm">
                 <span>しきい値（明るさ）</span>
-                <span className="tabular-nums text-zinc-500">{threshold}</span>
+                <span className="tabular-nums text-muted">{threshold}</span>
               </label>
               <input
                 type="range"
@@ -270,7 +302,7 @@ export function ChartMaker() {
                 max={100}
                 value={threshold}
                 onChange={(e) => setThreshold(Number(e.target.value))}
-                className="h-11 w-full accent-rose-600"
+                className="h-11 w-full accent-terra"
               />
               <Toggle label="白黒を反転（明るい所を埋める）" checked={invert} onChange={setInvert} />
             </div>
@@ -293,11 +325,11 @@ export function ChartMaker() {
             </div>
           )}
 
-          <div className="space-y-1 rounded-xl bg-zinc-50 p-3">
-            <p className="text-xs font-medium text-zinc-600">線画</p>
+          <div className="space-y-1 rounded-xl bg-oat p-3">
+            <p className="text-xs font-medium text-muted">線画</p>
             <label className="flex items-center justify-between text-sm">
               <span>線の感度</span>
-              <span className="tabular-nums text-zinc-500">{lineSensitivity}</span>
+              <span className="tabular-nums text-muted">{lineSensitivity}</span>
             </label>
             <input
               type="range"
@@ -305,17 +337,17 @@ export function ChartMaker() {
               max={100}
               value={lineSensitivity}
               onChange={(e) => setLineSensitivity(Number(e.target.value))}
-              className="h-11 w-full accent-rose-600"
+              className="h-11 w-full accent-terra"
               aria-label="線の感度"
             />
-            <p className="text-xs text-zinc-500">上げると細い線・かすれた線も拾います。線が太くなりすぎたら下げてください</p>
+            <p className="text-xs text-muted">上げると細い線・かすれた線も拾います。線が太くなりすぎたら下げてください</p>
             {!filet && palette.length > 0 && (
               <label className="flex min-h-11 items-center justify-between gap-3 pt-1 text-sm">
                 <span className="shrink-0">線の色</span>
                 <select
                   value={palette.some((y) => y.id === lineYarnId) ? lineYarnId : ""}
                   onChange={(e) => setLineYarnId(e.target.value)}
-                  className="h-11 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 text-base"
+                  className="h-11 min-w-0 flex-1 rounded-xl border-[1.5px] border-line bg-white px-2 text-base"
                 >
                   <option value="">自動（いちばん暗い毛糸: {yarnLabel(palette[lineIndex])}）</option>
                   {palette.map((y) => (
@@ -330,23 +362,23 @@ export function ChartMaker() {
 
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-2">
-              <p className="text-xs font-medium text-zinc-600">
+              <p className="text-xs font-medium text-muted">
                 使う毛糸{filet ? "（1色）" : `（選んだ色だけで減色・${tapestryIds.length}/${YARNS.length} 色）`}
               </p>
               {!filet && YARNS.length > 0 && (
                 <div className="flex shrink-0 gap-1">
-                  <button type="button" className="min-h-9 rounded-md px-2 text-xs text-rose-700 active:bg-rose-50" onClick={() => setTapestryIds(YARNS.map((y) => y.id))}>
+                  <button type="button" className="min-h-9 rounded-md px-2 text-xs text-terra-dark active:bg-terra-light" onClick={() => setTapestryIds(YARNS.map((y) => y.id))}>
                     すべて選ぶ
                   </button>
-                  <button type="button" className="min-h-9 rounded-md px-2 text-xs text-zinc-500 active:bg-zinc-100" onClick={() => setTapestryIds([])}>
+                  <button type="button" className="min-h-9 rounded-md px-2 text-xs text-muted active:bg-oat" onClick={() => setTapestryIds([])}>
                     すべて外す
                   </button>
                 </div>
               )}
             </div>
             {YARNS.length === 0 ? (
-              <p className="text-sm text-zinc-500">
-                在庫に毛糸がありません。<Link href="/yarns" className="text-rose-700 underline">毛糸の在庫</Link>を確認してください
+              <p className="text-sm text-muted">
+                在庫に毛糸がありません。<Link href="/yarns" className="text-terra-dark underline">毛糸の在庫</Link>を確認してください
               </p>
             ) : (
               <div role={filet ? "radiogroup" : "group"} aria-label="使う毛糸" className="flex flex-wrap gap-2">
@@ -365,7 +397,7 @@ export function ChartMaker() {
 
       {source && crop && grid ? (
         <>
-          <Section title="3. プレビュー比較">
+          <Section num={3} en="Preview" title="仕上がりを見くらべる">
             <PreviewCompare
               source={source}
               crop={crop}
@@ -389,22 +421,22 @@ export function ChartMaker() {
                 step={0.1}
                 value={view.zoom}
                 onChange={(e) => setView((v) => ({ ...v, zoom: Number(e.target.value) }))}
-                className="h-11 min-w-0 flex-1 accent-rose-600"
+                className="h-11 min-w-0 flex-1 accent-terra"
               />
-              <span className="w-10 text-right text-sm tabular-nums text-zinc-500">{view.zoom.toFixed(1)}x</span>
+              <span className="w-10 text-right text-sm tabular-nums text-muted">{view.zoom.toFixed(1)}x</span>
               <button
                 type="button"
-                className="min-h-11 shrink-0 rounded-lg bg-zinc-100 px-3 text-xs text-zinc-700 active:bg-zinc-200"
+                className="min-h-11 shrink-0 rounded-full border-[1.5px] border-ink/70 bg-cream px-3 text-xs font-bold text-ink active:bg-oat"
                 onClick={() => setView(DEFAULT_VIEW)}
               >
                 リセット
               </button>
             </div>
-            <p className="text-xs text-zinc-500">編みたい部分だけを拡大して、元の写真をドラッグで位置合わせすると細部が残りやすくなります</p>
+            <p className="text-xs text-muted">編みたい部分だけを拡大して、元の写真をドラッグで位置合わせすると細部が残りやすくなります</p>
           </Section>
 
-          <Section title="4. 編み図">
-            <p className="mb-3 text-xs text-zinc-500">目数・段数・編み方を変えたり写真を選び直したりすると、手直しは消えます</p>
+          <Section num={4} en="Chart" title="編み図を手直しして編む">
+            <p className="mb-3 text-xs text-muted">目数・段数・編み方を変えたり写真を選び直したりすると、手直しは消えます</p>
             <PatternEditor
               // 目数・段数・編み方・写真が変わったら手直しを捨てる（しきい値などの調整では残す）
               key={`${photoSeq}-${mode}-${colsLimited}-${rows}`}
@@ -422,7 +454,7 @@ export function ChartMaker() {
           </Section>
         </>
       ) : (
-        <p className="py-6 text-center text-sm text-zinc-500">
+        <p className="py-6 text-center text-sm text-muted">
           {source && palette.length === 0 ? "使う毛糸を1色以上選んでください" : "写真を選ぶと、プレビューと編み図が表示されます"}
         </p>
       )}
