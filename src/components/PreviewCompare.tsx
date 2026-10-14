@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import type { SourceImage } from "@/lib/image";
 import type { Mode, Rect } from "@/lib/pattern";
-import { FILET_INK } from "@/lib/palette";
 
 const PREVIEW_W = 480;
 
@@ -16,8 +15,10 @@ export function PreviewCompare(props: {
   rows: number;
   grid: Uint8Array;
   colors: string[];
+  /** 仕上がりイメージの背景（白い糸の方眼編みは暗い背景で見せる） */
+  backdrop: string;
 }) {
-  const { source, crop, mode, cols, rows, grid, colors } = props;
+  const { source, crop, mode, cols, rows, grid, colors, backdrop } = props;
   const photoRef = useRef<HTMLCanvasElement>(null);
   const resultRef = useRef<HTMLCanvasElement>(null);
   const height = Math.max(1, Math.round((PREVIEW_W * crop.h) / crop.w));
@@ -34,13 +35,13 @@ export function PreviewCompare(props: {
     if (!ctx) return;
     const cw = PREVIEW_W / cols;
     const ch = height / rows;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = backdrop;
     ctx.fillRect(0, 0, PREVIEW_W, height);
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const v = grid[r * cols + c];
         if (mode === "filet" && v === 0) continue;
-        ctx.fillStyle = mode === "filet" ? FILET_INK : colors[v];
+        ctx.fillStyle = colors[mode === "filet" ? 0 : v];
         // 隣のマスと隙間ができないよう整数座標に丸める
         const x0 = Math.round(c * cw);
         const y0 = Math.round(r * ch);
@@ -63,7 +64,7 @@ export function PreviewCompare(props: {
       }
       ctx.stroke();
     }
-  }, [mode, cols, rows, grid, colors, height]);
+  }, [mode, cols, rows, grid, colors, backdrop, height]);
 
   return (
     <div className="grid grid-cols-2 gap-2">

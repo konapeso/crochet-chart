@@ -3,20 +3,22 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { hexToRgb, rgbToLab } from "@/lib/color";
 import { loadImageFile, type SourceImage } from "@/lib/image";
-import { PROVISIONAL_PALETTE } from "@/lib/palette";
 import { binarize, cellSizeCm, cropRect, type Gauge, type Mode, quantize, sampleCells, suggestRows } from "@/lib/pattern";
+import { countStitches } from "@/lib/usage";
+import { type Yarn, YARNS, yarnLabel } from "@/lib/yarns";
+import Link from "next/link";
 import { buildChart } from "./chart";
 import { Legend } from "./Legend";
 import { NumberField } from "./NumberField";
 import { PreviewCompare } from "./PreviewCompare";
 import type { SingleCrochetVariant } from "./symbols";
+import { UsageTable } from "./UsageTable";
+import { YarnSwatch } from "./YarnSwatch";
 import { ZoomableView } from "./ZoomableView";
 
-const PALETTE = PROVISIONAL_PALETTE;
-const PALETTE_LAB = PALETTE.map((y) => rgbToLab(hexToRgb(y.hex)));
-const PALETTE_HEX = PALETTE.map((y) => y.hex);
-// 白っぽい毛糸は白い背景で見えないので縁取りする
-const PALETTE_OUTLINES = PALETTE_LAB.map((lab) => (lab[0] > 85 ? "#a1a1aa" : undefined));
+const YARN_LAB = new Map(YARNS.map((y) => [y.id, rgbToLab(hexToRgb(y.hex))]));
+/** 白っぽい毛糸（白い背景で見えにくい） */
+const isLight = (y: Yarn) => (YARN_LAB.get(y.id)?.[0] ?? 0) > 85;
 
 const DEFAULT_GAUGE: Record<Mode, Gauge> = {
   tapestry: { stitches: 18, rows: 20 },
@@ -55,6 +57,28 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
   );
 }
 
+function YarnOption({ yarn, selected, onClick, role }: { yarn: Yarn; selected: boolean; onClick: () => void; role: "checkbox" | "radio" }) {
+  return (
+    <button
+      type="button"
+      role={role}
+      aria-checked={selected}
+      onClick={onClick}
+      className={`flex min-h-11 items-center gap-2 rounded-full py-1 pr-3 pl-1.5 text-left text-xs ring-1 ${
+        selected ? "bg-rose-50 font-medium text-zinc-900 ring-2 ring-rose-500" : "bg-white text-zinc-500 ring-zinc-200"
+      }`}
+    >
+      <YarnSwatch yarn={yarn} size={26} />
+      <span className="leading-tight">
+        {yarnLabel(yarn)}
+        <span className="block text-[11px] text-zinc-500">
+          {yarn.colorName}・残 {yarn.remainingGrams}g
+        </span>
+      </span>
+    </button>
+  );
+}
+
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
@@ -77,6 +101,17 @@ export function ChartMaker() {
   const [scVariant, setScVariant] = useState<SingleCrochetVariant>("x");
   const [threshold, setThreshold] = useState(50);
   const [invert, setInvert] = useState(false);
+  const [tapestryIds, setTapestryIds] = useState<string[]>(() => YARNS.map((y) => y.id));
+  const [filetId, setFiletId] = useState<string | undefined>(() => YARNS[0]?.id);
+
+  // 使う毛糸（細編みの編み込み: 選んだ毛糸すべて / 方眼編み: 1色）。在庫の並び順を保つ
+  const palette = useMemo(
+    () => YARNS.filter((y) => (mode === "filet" ? y.id === filetId : tapestryIds.includes(y.id))),
+    [mode, filetId, tapestryIds],
+  );
+  const paletteLab = useMemo(() => palette.map((y) => YARN_LAB.get(y.id)!), [palette]);
+  const colors = useMemo(() => palette.map((y) => y.hex), [palette]);
+  const outlines = useMemo(() => palette.map((y) => (isLight(y) ? "#a1a1aa" : undefined)), [palette]);
 
   const gauge = gauges[mode];
   const cell = useMemo(() => cellSizeCm(mode, gauge), [mode, gauge]);
@@ -85,15 +120,16 @@ export function ChartMaker() {
   const crop = useMemo(() => (source ? cropRect(source.width, source.height, colsLimited, rows, cell) : null), [source, colsLimited, rows, cell]);
   const cells = useMemo(() => (source && crop ? sampleCells(source.pixels, crop, colsLimited, rows) : null), [source, crop, colsLimited, rows]);
   const grid = useMemo(() => {
-    if (!cells) return null;
-    return mode === "tapestry" ? quantize(cells, colsLimited, rows, PALETTE_LAB, dither) : binarize(cells, threshold, invert);
-  }, [cells, mode, colsLimited, rows, dither, threshold, invert]);
+    if (!cells || palette.length === 0) return null;
+    return mode === "tapestry" ? quantize(cells, colsLimited, rows, paletteLab, dither) : binarize(cells, threshold, invert);
+  }, [cells, palette, mode, colsLimited, rows, paletteLab, dither, threshold, invert]);
   const chart = useMemo(
-    () =>
-      grid &&
-      buildChart({ mode, cols: colsLimited, rows, grid, gauge, colors: PALETTE_HEX, outlines: PALETTE_OUTLINES, scVariant }),
-    [grid, mode, colsLimited, rows, gauge, scVariant],
+    () => grid && buildChart({ mode, cols: colsLimited, rows, grid, gauge, colors, outlines, scVariant }),
+    [grid, mode, colsLimited, rows, gauge, colors, outlines, scVariant],
   );
+  const usage = useMemo(() => grid && countStitches(mode, colsLimited, rows, grid, palette.length), [grid, mode, colsLimited, rows, palette]);
+  const toggleTapestry = (id: string) =>
+    setTapestryIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
@@ -115,10 +151,7 @@ export function ChartMaker() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 px-4 pt-4 pb-16">
-      <header className="pt-2">
-        <h1 className="text-2xl font-bold tracking-tight">Crochet Chart Maker</h1>
-        <p className="mt-1 text-sm text-zinc-500">写真からかぎ針編みの編み図を作ります</p>
-      </header>
+      <p className="text-sm text-zinc-500">写真からかぎ針編みの編み図を作ります</p>
 
       <Section title="1. 写真">
         <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 text-base font-semibold text-white active:bg-rose-700">
@@ -205,24 +238,57 @@ export function ChartMaker() {
                   />
                 </div>
               </div>
-              <p className="mt-3 mb-1 text-xs font-medium text-zinc-600">パレット（仮）</p>
-              <ul className="flex flex-wrap gap-2">
-                {PALETTE.map((y) => (
-                  <li key={y.id} className="flex items-center gap-1.5 rounded-full bg-zinc-50 py-1 pr-2.5 pl-1 text-xs ring-1 ring-zinc-200">
-                    <span className="h-5 w-5 rounded-full ring-1 ring-zinc-300" style={{ background: y.hex }} />
-                    {y.name}
-                  </li>
-                ))}
-              </ul>
             </div>
           )}
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-zinc-600">
+                使う毛糸{filet ? "（1色）" : `（選んだ色だけで減色・${tapestryIds.length}/${YARNS.length} 色）`}
+              </p>
+              {!filet && YARNS.length > 0 && (
+                <div className="flex shrink-0 gap-1">
+                  <button type="button" className="min-h-9 rounded-md px-2 text-xs text-rose-700 active:bg-rose-50" onClick={() => setTapestryIds(YARNS.map((y) => y.id))}>
+                    すべて選ぶ
+                  </button>
+                  <button type="button" className="min-h-9 rounded-md px-2 text-xs text-zinc-500 active:bg-zinc-100" onClick={() => setTapestryIds([])}>
+                    すべて外す
+                  </button>
+                </div>
+              )}
+            </div>
+            {YARNS.length === 0 ? (
+              <p className="text-sm text-zinc-500">
+                在庫に毛糸がありません。<Link href="/yarns" className="text-rose-700 underline">毛糸の在庫</Link>を確認してください
+              </p>
+            ) : (
+              <div role={filet ? "radiogroup" : "group"} aria-label="使う毛糸" className="flex flex-wrap gap-2">
+                {YARNS.map((y) =>
+                  filet ? (
+                    <YarnOption key={y.id} yarn={y} role="radio" selected={y.id === filetId} onClick={() => setFiletId(y.id)} />
+                  ) : (
+                    <YarnOption key={y.id} yarn={y} role="checkbox" selected={tapestryIds.includes(y.id)} onClick={() => toggleTapestry(y.id)} />
+                  ),
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </Section>
 
-      {source && crop && grid && chart ? (
+      {source && crop && grid && chart && usage ? (
         <>
           <Section title="3. プレビュー比較">
-            <PreviewCompare source={source} crop={crop} mode={mode} cols={colsLimited} rows={rows} grid={grid} colors={PALETTE_HEX} />
+            <PreviewCompare
+              source={source}
+              crop={crop}
+              mode={mode}
+              cols={colsLimited}
+              rows={rows}
+              grid={grid}
+              colors={colors}
+              backdrop={filet && palette[0] && isLight(palette[0]) ? "#52525b" : "#ffffff"}
+            />
           </Section>
 
           <Section title="4. 編み図" aside={<span className="text-xs text-zinc-500">ピンチで拡大・ダブルタップで全体</span>}>
@@ -230,12 +296,23 @@ export function ChartMaker() {
               <ZoomableView width={chart.width} height={chart.height} label={`${filet ? "方眼編み" : "細編みの編み込み"}の編み図`}>
                 {chart.content}
               </ZoomableView>
-              <Legend mode={mode} scVariant={scVariant} cols={colsLimited} rows={rows} palette={PALETTE} grid={grid} />
+              <Legend mode={mode} scVariant={scVariant} />
+            </div>
+            <div className="mt-5 border-t border-zinc-100 pt-4">
+              <div className="mb-1 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-zinc-700">色ごとの目数と必要量</h3>
+                <Link href="/yarns" className="text-xs text-rose-700 underline">
+                  在庫を見る
+                </Link>
+              </div>
+              <UsageTable mode={mode} palette={palette} usage={usage} />
             </div>
           </Section>
         </>
       ) : (
-        <p className="py-6 text-center text-sm text-zinc-500">写真を選ぶと、プレビューと編み図が表示されます</p>
+        <p className="py-6 text-center text-sm text-zinc-500">
+          {source && palette.length === 0 ? "使う毛糸を1色以上選んでください" : "写真を選ぶと、プレビューと編み図が表示されます"}
+        </p>
       )}
     </div>
   );
