@@ -3,10 +3,12 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { hexToRgb, rgbToLab } from "@/lib/color";
 import { loadImageFile, type SourceImage } from "@/lib/image";
-import { detectLines, flattenPaper } from "@/lib/lineart";
+import { analyzeLines, flattenPaper } from "@/lib/lineart";
 import {
   binarize,
+  boostChroma,
   cellSizeCm,
+  smoothCells,
   cropRect,
   type CropView,
   DEFAULT_VIEW,
@@ -44,8 +46,10 @@ const MAX_ZOOM = 5;
 /** photo = 写真 / illust = 紙に描いたイラスト・線画（紙の影を補正し、細い線を拾う） */
 type ImageKind = "photo" | "illust";
 
-/** 線の感度（0〜100）→ マスの中で線が占める割合のしきい値 */
-const lineThreshold = (sensitivity: number) => 0.3 - (sensitivity / 100) * 0.28;
+/** 線の感度（0〜100）→ マスを通る線の長さのしきい値（マスの一辺に対する倍率） */
+const lineThreshold = (sensitivity: number) => 1 - (sensitivity / 100) * 0.8;
+/** イラストの減色: 明るさの差を軽く見る（淡い塗りでも色みの近い毛糸を選ぶ） */
+const ILLUST_KL = 2;
 
 function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
   return (
@@ -145,18 +149,19 @@ export function ChartMaker() {
   const illust = imageKind === "illust";
   // イラストは紙の影を補正してから線を探す（写真を選び直すか種類を変えたときだけ計算）
   const pixels = useMemo(() => (source ? (illust ? flattenPaper(source.pixels) : source.pixels) : null), [source, illust]);
-  const lineMask = useMemo(() => (pixels && illust ? detectLines(pixels) : null), [pixels, illust]);
+  const lineInfo = useMemo(() => (pixels && illust ? analyzeLines(pixels) : null), [pixels, illust]);
 
   const crop = useMemo(
     () => (source ? cropRect(source.width, source.height, colsLimited, rows, cell, view) : null),
     [source, colsLimited, rows, cell, view],
   );
   const sampled = useMemo(
-    () => (pixels && crop ? sampleCells(pixels, crop, colsLimited, rows, lineMask) : null),
-    [pixels, crop, colsLimited, rows, lineMask],
+    () => (pixels && crop ? sampleCells(pixels, crop, colsLimited, rows, lineInfo) : null),
+    [pixels, crop, colsLimited, rows, lineInfo],
   );
   const lines = useMemo(
-    () => (sampled?.lineCoverage ? lineCells(sampled.lineCoverage, lineThreshold(lineSensitivity), sampled.labs) : null),
+    () =>
+      sampled?.lineCoverage && sampled.lineLength ? lineCells(sampled.lineCoverage, sampled.lineLength, lineThreshold(lineSensitivity)) : null,
     [sampled, lineSensitivity],
   );
   // 線の色: 指定した毛糸（使う毛糸に入っていれば）か、使う毛糸のうち一番暗いもの
@@ -172,9 +177,20 @@ export function ChartMaker() {
   const grid = useMemo(() => {
     if (!sampled || palette.length === 0) return null;
     return mode === "tapestry"
-      ? quantize(sampled.labs, colsLimited, rows, paletteLab, dither, lines, lineIndex)
+      ? illust
+        ? quantize(
+            boostChroma(smoothCells(sampled.labs, colsLimited, rows, lines)),
+            colsLimited,
+            rows,
+            paletteLab,
+            dither,
+            lines,
+            lineIndex,
+            ILLUST_KL,
+          )
+        : quantize(sampled.labs, colsLimited, rows, paletteLab, dither, lines, lineIndex)
       : binarize(sampled.labs, threshold, invert, lines);
-  }, [sampled, palette, mode, colsLimited, rows, paletteLab, dither, lines, lineIndex, threshold, invert]);
+  }, [sampled, palette, mode, illust, colsLimited, rows, paletteLab, dither, lines, lineIndex, threshold, invert]);
   const chart = useMemo(
     () => grid && buildChart({ mode, cols: colsLimited, rows, grid, gauge, colors, outlines, scVariant }),
     [grid, mode, colsLimited, rows, gauge, colors, outlines, scVariant],
