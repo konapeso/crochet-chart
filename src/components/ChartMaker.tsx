@@ -19,17 +19,13 @@ import {
   sampleCells,
   suggestRows,
 } from "@/lib/pattern";
-import { countStitches } from "@/lib/usage";
 import { type Yarn, YARNS, yarnLabel } from "@/lib/yarns";
 import Link from "next/link";
-import { buildChart } from "./chart";
-import { Legend } from "./Legend";
 import { NumberField } from "./NumberField";
+import { PatternEditor } from "./PatternEditor";
 import { PreviewCompare } from "./PreviewCompare";
 import type { SingleCrochetVariant } from "./symbols";
-import { UsageTable } from "./UsageTable";
 import { YarnSwatch } from "./YarnSwatch";
-import { ZoomableView } from "./ZoomableView";
 
 const YARN_LAB = new Map(YARNS.map((y) => [y.id, rgbToLab(hexToRgb(y.hex))]));
 /** 白っぽい毛糸（白い背景で見えにくい） */
@@ -132,6 +128,11 @@ export function ChartMaker() {
   /** 線の色にする毛糸（"" = 選んだ毛糸のうち一番暗いもの） */
   const [lineYarnId, setLineYarnId] = useState("");
   const [view, setView] = useState<CropView>(DEFAULT_VIEW);
+  /** 写真を選び直した回数（手直しは写真ごと） */
+  const [photoSeq, setPhotoSeq] = useState(0);
+  const [patternName, setPatternName] = useState("");
+  /** この端末に保存した編み図の id（2回目からは上書き保存） */
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   // 使う毛糸（細編みの編み込み: 選んだ毛糸すべて / 方眼編み: 1色）。在庫の並び順を保つ
   const palette = useMemo(
@@ -140,7 +141,6 @@ export function ChartMaker() {
   );
   const paletteLab = useMemo(() => palette.map((y) => YARN_LAB.get(y.id)!), [palette]);
   const colors = useMemo(() => palette.map((y) => y.hex), [palette]);
-  const outlines = useMemo(() => palette.map((y) => (isLight(y) ? "#a1a1aa" : undefined)), [palette]);
 
   const gauge = gauges[mode];
   const cell = useMemo(() => cellSizeCm(mode, gauge), [mode, gauge]);
@@ -191,11 +191,6 @@ export function ChartMaker() {
         : quantize(sampled.labs, colsLimited, rows, paletteLab, dither, lines, lineIndex)
       : binarize(sampled.labs, threshold, invert, lines);
   }, [sampled, palette, mode, illust, colsLimited, rows, paletteLab, dither, lines, lineIndex, threshold, invert]);
-  const chart = useMemo(
-    () => grid && buildChart({ mode, cols: colsLimited, rows, grid, gauge, colors, outlines, scVariant }),
-    [grid, mode, colsLimited, rows, gauge, colors, outlines, scVariant],
-  );
-  const usage = useMemo(() => grid && countStitches(mode, colsLimited, rows, grid, palette.length), [grid, mode, colsLimited, rows, palette]);
   const toggleTapestry = (id: string) =>
     setTapestryIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
@@ -206,6 +201,9 @@ export function ChartMaker() {
     try {
       setSource(await loadImageFile(file));
       setView(DEFAULT_VIEW);
+      setPhotoSeq((n) => n + 1);
+      setSavedId(null);
+      setPatternName(`編み図 ${new Date().toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "画像を読み込めませんでした");
     } finally {
@@ -394,7 +392,7 @@ export function ChartMaker() {
         </div>
       </Section>
 
-      {source && crop && grid && chart && usage ? (
+      {source && crop && grid ? (
         <>
           <Section title="3. プレビュー比較">
             <PreviewCompare
@@ -434,22 +432,22 @@ export function ChartMaker() {
             <p className="text-xs text-zinc-500">編みたい部分だけを拡大して、元の写真をドラッグで位置合わせすると細部が残りやすくなります</p>
           </Section>
 
-          <Section title="4. 編み図" aside={<span className="text-xs text-zinc-500">ピンチで拡大・ダブルタップで全体</span>}>
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_300px]">
-              <ZoomableView width={chart.width} height={chart.height} label={`${filet ? "方眼編み" : "細編みの編み込み"}の編み図`}>
-                {chart.content}
-              </ZoomableView>
-              <Legend mode={mode} scVariant={scVariant} />
-            </div>
-            <div className="mt-5 border-t border-zinc-100 pt-4">
-              <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700">色ごとの目数と必要量</h3>
-                <Link href="/yarns" className="text-xs text-rose-700 underline">
-                  在庫を見る
-                </Link>
-              </div>
-              <UsageTable mode={mode} palette={palette} usage={usage} />
-            </div>
+          <Section title="4. 編み図">
+            <p className="mb-3 text-xs text-zinc-500">目数・段数・編み方を変えたり写真を選び直したりすると、手直しは消えます</p>
+            <PatternEditor
+              // 目数・段数・編み方・写真が変わったら手直しを捨てる（しきい値などの調整では残す）
+              key={`${photoSeq}-${mode}-${colsLimited}-${rows}`}
+              mode={mode}
+              cols={colsLimited}
+              rows={rows}
+              gauge={gauge}
+              scVariant={scVariant}
+              palette={palette}
+              base={grid}
+              savedId={savedId}
+              defaultName={patternName || "編み図"}
+              onSaved={setSavedId}
+            />
           </Section>
         </>
       ) : (

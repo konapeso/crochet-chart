@@ -17,7 +17,60 @@ export type ChartParams = {
   scVariant: SingleCrochetVariant;
 };
 
-export type Chart = { width: number; height: number; content: ReactNode };
+/** 編み図の寸法。タップ位置からマスを求めたり、段をハイライトしたりするのに使う */
+export type ChartLayout = {
+  filet: boolean;
+  cols: number;
+  rows: number;
+  /** 横方向の目数（方眼編みは 3×マス数+1） */
+  n: number;
+  colW: number;
+  rowH: number;
+  gridX: number;
+  gridY: number;
+  width: number;
+  height: number;
+};
+
+export type Chart = { width: number; height: number; content: ReactNode; layout: ChartLayout };
+
+/** r 段目（1段目が一番下）の上端 */
+export const rowTop = (l: ChartLayout, r: number) => l.gridY + (l.rows - r) * l.rowH;
+
+/** 奇数段は右→左、偶数段は左→右 */
+export const fromRight = (r: number) => r % 2 === 1;
+
+/**
+ * SVG 上の点がどのマスか。row は上の行から数えた番号（grid の行）、col は目（方眼編みはマス）の番号。
+ * 編み図の外なら null。
+ */
+export function cellAt(l: ChartLayout, x: number, y: number): { row: number; col: number } | null {
+  const gx = x - l.gridX;
+  if (gx < 0 || gx >= l.n * l.colW) return null;
+  const row = Math.floor((y - l.gridY) / l.rowH);
+  // 方眼編みのマスは長編み3目分（右端の境目の長編みは一番右のマスに含める）
+  const col = Math.min(l.cols - 1, Math.floor(gx / (l.filet ? l.colW * 3 : l.colW)));
+  if (row < 0 || row >= l.rows) return null;
+  return { row, col };
+}
+
+/** 編む向きの矢印と段数の位置（編み始め側） */
+export function rowEdge(l: ChartLayout, r: number) {
+  const right = fromRight(r);
+  const dir = right ? 1 : -1;
+  // 細編みの立ち上がり鎖1目は編み地の外にあるので、その分外側
+  const x = (right ? l.gridX + l.n * l.colW : l.gridX) + (l.filet ? 0 : dir * l.colW);
+  const arrowX = x + dir * 6;
+  const cy = rowTop(l, r) + l.rowH / 2;
+  return {
+    dir,
+    cy,
+    arrowX,
+    arrow: `M${arrowX + dir * 16} ${cy}L${arrowX} ${cy}M${arrowX + dir * 5} ${cy - 3.5}L${arrowX} ${cy}L${arrowX + dir * 5} ${cy + 3.5}`,
+    labelX: arrowX + dir * 21,
+    anchor: (right ? "start" : "end") as "start" | "end",
+  };
+}
 
 const MARGIN_SIDE = 72;
 const MARGIN_TOP = 16;
@@ -46,8 +99,9 @@ export function buildChart(p: ChartParams): Chart {
   const width = gridW + MARGIN_SIDE * 2;
   const height = scaleY + 26;
   const sw = filet ? 1.3 : 1.6;
+  const layout: ChartLayout = { filet, cols: p.cols, rows: p.rows, n, colW, rowH, gridX, gridY, width, height };
 
-  const rowTop = (r: number) => gridY + (p.rows - r) * rowH;
+  const top = (r: number) => rowTop(layout, r);
   const colX = (c: number) => gridX + c * colW;
   const cell = (r: number, c: number) => p.grid[(p.rows - r) * p.cols + c];
   const tapestryInk = (idx: number) => ({ color: p.colors[idx], outline: p.outlines[idx] });
@@ -59,16 +113,16 @@ export function buildChart(p: ChartParams): Chart {
     guides.push(<line key={`gv${k}`} x1={x} x2={x} y1={gridY} y2={gridY + gridH} stroke={k % 10 ? GUIDE_MINOR : GUIDE_MAJOR} strokeWidth={0.8} />);
   }
   for (let r = 5; r < p.rows; r += 5) {
-    const y = rowTop(r);
+    const y = top(r);
     guides.push(<line key={`gh${r}`} x1={gridX} x2={gridX + gridW} y1={y} y2={y} stroke={r % 10 ? GUIDE_MINOR : GUIDE_MAJOR} strokeWidth={0.8} />);
   }
 
   const stitches: ReactNode[] = [];
   const edges: ReactNode[] = [];
   for (let r = 1; r <= p.rows; r++) {
-    const y = rowTop(r);
-    const fromRight = r % 2 === 1;
-    const startCol = fromRight ? n - 1 : 0;
+    const y = top(r);
+    const right = fromRight(r);
+    const startCol = right ? n - 1 : 0;
 
     for (let c = 0; c < n; c++) {
       const key = `${r}-${c}`;
@@ -86,21 +140,17 @@ export function buildChart(p: ChartParams): Chart {
     }
 
     // 細編みの立ち上がり鎖1目は目数に数えないので、編み地の外に置く
-    const dir = fromRight ? 1 : -1;
-    let x = fromRight ? gridX + gridW : gridX;
     if (!filet) {
-      const first = cell(r, fromRight ? p.cols - 1 : 0);
-      const tx = fromRight ? x : x - colW;
+      const first = cell(r, right ? p.cols - 1 : 0);
+      const tx = right ? gridX + gridW : gridX - colW;
       edges.push(<TurningChain key={`t${r}`} x={tx} y={y} w={colW} h={rowH} count={1} strokeWidth={sw} {...tapestryInk(first)} />);
-      x += dir * colW;
     }
     // 矢印は編む向きを指す（編み始め側の外から内へ）
-    const arrowX = x + dir * 6;
-    const cy = y + rowH / 2;
+    const edge = rowEdge(layout, r);
     edges.push(
       <path
         key={`a${r}`}
-        d={`M${arrowX + dir * 16} ${cy}L${arrowX} ${cy}M${arrowX + dir * 5} ${cy - 3.5}L${arrowX} ${cy}L${arrowX + dir * 5} ${cy + 3.5}`}
+        d={edge.arrow}
         fill="none"
         stroke={LABEL_COLOR}
         strokeWidth={1.1}
@@ -112,10 +162,10 @@ export function buildChart(p: ChartParams): Chart {
       edges.push(
         <text
           key={`n${r}`}
-          x={arrowX + dir * 21}
-          y={cy}
+          x={edge.labelX}
+          y={edge.cy}
           dominantBaseline="central"
-          textAnchor={fromRight ? "start" : "end"}
+          textAnchor={edge.anchor}
           fontSize={r % 10 === 0 ? 12 : 10}
           fontWeight={r % 10 === 0 ? 700 : 400}
           fill={r % 10 === 0 ? "#18181b" : LABEL_COLOR}
@@ -161,5 +211,5 @@ export function buildChart(p: ChartParams): Chart {
       {edges}
     </g>
   );
-  return { width, height, content };
+  return { width, height, content, layout };
 }
