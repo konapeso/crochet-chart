@@ -1,0 +1,90 @@
+[
+  {
+    "id": "test-hamanaka-amerry-offwhite",
+    "brand": "ハマナカ",
+    "name": "アメリー",
+    "colorNumber": "20",
+    "colorName": "オフホワイト",
+    "hex": "#f1ece0",
+    "remainingGrams": 40,
+    "hookSize": "5/0〜6/0号",
+    "gramsPer100Sc": 1.2
+  },
+  {
+    "id": "test-hamanaka-amerry-black",
+    "brand": "ハマナカ",
+    "name": "アメリー",
+    "colorNumber": "24",
+    "colorName": "ブラック",
+    "hex": "#2a2a2e",
+    "remainingGrams": 32,
+    "hookSize": "5/0〜6/0号",
+    "gramsPer100Sc": 1.2
+  },
+  {
+    "id": "test-hamanaka-amerry-red",
+    "brand": "ハマナカ",
+    "name": "アメリー",
+    "colorNumber": "6",
+    "colorName": "レッド",
+    "hex": "#be2a3a",
+    "remainingGrams": 15,
+    "hookSize": "5/0〜6/0号",
+    "gramsPer100Sc": 1.2
+  },
+  {
+    "id": "test-hamanaka-amerry-mustard",
+    "brand": "ハマナカ",
+    "name": "アメリー",
+    "colorNumber": "31",
+    "colorName": "マスタード",
+    "hex": "#d9a92e",
+    "remainingGrams": 40,
+    "hookSize": "5/0〜6/0号",
+    "gramsPer100Sc": 1.2
+  },
+  {
+    "id": "test-hamanaka-amerry-navy",
+    "brand": "ハマナカ",
+    "name": "アメリー",
+    "colorNumber": "17",
+    "colorName": "ネイビー",
+    "hex": "#2c3a63",
+    "remainingGrams": 40,
+    "hookSize": "5/0〜6/0号",
+    "gramsPer100Sc": 1.2
+  },
+  {
+    "id": "test-hamanaka-amerry-green",
+    "brand": "ハマナカ",
+    "name": "アメリー",
+    "colorNumber": "34",
+    "colorName": "グリーン",
+    "hex": "#3f7a52",
+    "remainingGrams": 25,
+    "hookSize": "5/0〜6/0号",
+    "gramsPer100Sc": 1.2
+  },
+  {
+    "id": "test-hamanaka-piccolo-pink",
+    "brand": "ハマナカ",
+    "name": "ピッコロ",
+    "colorNumber": "4",
+    "colorName": "ピンク",
+    "hex": "#f0a6bc",
+    "remainingGrams": 8,
+    "hookSize": "4/0号",
+    "gramsPer100Sc": 0.7
+  },
+  {
+    "id": "test-hamanaka-bonny-brown",
+    "brand": "ハマナカ",
+    "name": "ボニー",
+    "colorNumber": "419",
+    "colorName": "ブラウン",
+    "hex": "#7a5236",
+    "remainingGrams": 50,
+    "hookSize": "7.5/0号",
+    "gramsPer100Sc": 3.7
+  }
+]

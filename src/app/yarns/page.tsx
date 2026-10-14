@@ -42,7 +42,7 @@ export default function YarnsPage() {
           ))}
         </ul>
       )}
-      <p className="text-xs text-zinc-500">在庫は data/yarns.json で管理しています。表示色は写真からの推定です。</p>
+      <p className="text-xs text-zinc-500">在庫は data/yarns.json で管理しています。表示色は目安です。</p>
     </div>
   );
 }
