@@ -56,7 +56,7 @@ body {
   outline-offset: -9px;
 }
 
-/* 参考: 丸い枠付きボタン（からし色・黒い細枠・やわらかい影） */
+/* 丸い枠付きボタン（からし色・黒い細枠・やわらかい影） */
 @utility btn-pill {
   display: inline-flex;
   align-items: center;

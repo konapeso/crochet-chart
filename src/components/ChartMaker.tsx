@@ -45,7 +45,7 @@ const lineThreshold = (sensitivity: number) => 1 - (sensitivity / 100) * 0.8;
 /** 減色: 明るさの差を軽く見る（淡い塗りでも色みの近い毛糸を選ぶ） */
 const COLOR_KL = 2;
 
-/** 英語の見出し＋日本語の添え書き（参考サイトの「Unique / 新感覚の…」の形） */
+/** 英語の見出し＋日本語の添え書き */
 function Section({ num, en, title, children }: { num: number; en: string; title: string; children: ReactNode }) {
   return (
     <section className="stitched rounded-[28px] bg-cream px-5 pt-6 pb-6 shadow-[0_2px_10px_rgb(43_42_37/0.06)]">

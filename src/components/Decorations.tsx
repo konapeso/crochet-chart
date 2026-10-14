@@ -30,7 +30,7 @@ export function CrochetHook({ size = 32, color = "#687a5d", line = "#2b2a25", cl
   );
 }
 
-/** 雲のようにゆらいだ形（参考サイトのブロブ） */
+/** 雲や花のようにゆらいだ形 */
 export function Blob({ color, className, variant = "cloud" }: { color: string; className?: string; variant?: "cloud" | "flower" }) {
   const d =
     variant === "cloud"
