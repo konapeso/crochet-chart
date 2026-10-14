@@ -37,8 +37,11 @@ export function rgbToLab([r, g, b]: RGB): Lab {
 
 const DEG = Math.PI / 180;
 
-/** CIEDE2000 color difference */
-export function deltaE2000([L1, a1, b1]: Lab, [L2, a2, b2]: Lab): number {
+/**
+ * CIEDE2000 color difference.
+ * kL = 2 で明るさの差を半分に評価する（糸・布の色合わせで使われる重み付け）
+ */
+export function deltaE2000([L1, a1, b1]: Lab, [L2, a2, b2]: Lab, kL = 1): number {
   const C1 = Math.hypot(a1, b1);
   const C2 = Math.hypot(a2, b2);
   const Cbar7 = Math.pow((C1 + C2) / 2, 7);
@@ -86,17 +89,17 @@ export function deltaE2000([L1, a1, b1]: Lab, [L2, a2, b2]: Lab): number {
   const SH = 1 + 0.015 * Cbarp * T;
   const RT = -Math.sin(2 * dTheta * DEG) * RC;
 
-  const l = dLp / SL;
+  const l = dLp / (kL * SL);
   const c = dCp / SC;
   const h = dHp / SH;
   return Math.sqrt(l * l + c * c + h * h + RT * c * h);
 }
 
-export function nearestIndex(lab: Lab, palette: Lab[]): number {
+export function nearestIndex(lab: Lab, palette: Lab[], kL = 1): number {
   let best = 0;
   let bestD = Infinity;
   for (let i = 0; i < palette.length; i++) {
-    const d = deltaE2000(lab, palette[i]);
+    const d = deltaE2000(lab, palette[i], kL);
     if (d < bestD) {
       bestD = d;
       best = i;
