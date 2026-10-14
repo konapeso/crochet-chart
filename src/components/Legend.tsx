@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { Mode } from "@/lib/pattern";
-import { FILET_INK, type Yarn } from "@/lib/palette";
 import {
   Chain,
   DoubleCrochet,
@@ -35,22 +34,12 @@ function Row({ icon, name, note }: { icon: ReactNode; name: string; note?: strin
 const box = { x: 2, y: 2, w: 20, h: 20 };
 const tall = { x: 2, y: 1, w: 20, h: 38 };
 
-export function Legend(props: {
-  mode: Mode;
-  scVariant: SingleCrochetVariant;
-  cols: number;
-  rows: number;
-  palette: Yarn[];
-  grid: Uint8Array;
-}) {
-  const { mode, scVariant, cols, rows, palette, grid } = props;
+/** 記号の凡例 */
+export function Legend({ mode, scVariant }: { mode: Mode; scVariant: SingleCrochetVariant }) {
   const filet = mode === "filet";
-  const counts = new Array<number>(filet ? 2 : palette.length).fill(0);
-  for (const v of grid) counts[v]++;
-  const total = grid.length;
 
   return (
-    <div className="space-y-5">
+    <div>
       <section>
         <h3 className="mb-1 text-sm font-semibold text-zinc-700">記号</h3>
         <ul className="divide-y divide-zinc-100">
@@ -90,71 +79,6 @@ export function Legend(props: {
             <Row icon={<Icon><SlipStitch {...box} /></Icon>} name="引き抜き編み" />
           </ul>
         </details>
-      </section>
-
-      <section>
-        <h3 className="mb-1 text-sm font-semibold text-zinc-700">配色表</h3>
-        {filet ? (
-          <table className="w-full text-sm">
-            <tbody className="divide-y divide-zinc-100">
-              <tr>
-                <td className="py-1.5">
-                  <span className="mr-2 inline-block h-4 w-4 rounded-sm align-middle" style={{ background: FILET_INK }} />糸（単色）
-                </td>
-                <td className="py-1.5 text-right tabular-nums">1色</td>
-              </tr>
-              <tr>
-                <td className="py-1.5">埋まったマス</td>
-                <td className="py-1.5 text-right tabular-nums">{counts[1]}</td>
-              </tr>
-              <tr>
-                <td className="py-1.5">空きマス</td>
-                <td className="py-1.5 text-right tabular-nums">{counts[0]}</td>
-              </tr>
-              <tr>
-                <td className="py-1.5">作り目</td>
-                <td className="py-1.5 text-right tabular-nums">鎖 {cols * 3 + 1} 目</td>
-              </tr>
-              <tr>
-                <td className="py-1.5">1段の目数</td>
-                <td className="py-1.5 text-right tabular-nums">長編み {cols * 3 + 1} 目分</td>
-              </tr>
-            </tbody>
-          </table>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="text-xs text-zinc-500">
-              <tr>
-                <th className="py-1 text-left font-normal">毛糸</th>
-                <th className="py-1 text-right font-normal">目数</th>
-                <th className="py-1 text-right font-normal">割合</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {palette.map((y, i) =>
-                counts[i] === 0 ? null : (
-                  <tr key={y.id}>
-                    <td className="py-1.5">
-                      <span
-                        className="mr-2 inline-block h-4 w-4 rounded-sm align-middle ring-1 ring-zinc-300"
-                        style={{ background: y.hex }}
-                      />
-                      {y.name}
-                    </td>
-                    <td className="py-1.5 text-right tabular-nums">{counts[i]}</td>
-                    <td className="py-1.5 text-right tabular-nums">{Math.round((counts[i] / total) * 100)}%</td>
-                  </tr>
-                ),
-              )}
-              <tr className="text-zinc-500">
-                <td className="py-1.5">作り目</td>
-                <td className="py-1.5 text-right tabular-nums" colSpan={2}>
-                  鎖 {cols} 目 / {rows} 段
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        )}
       </section>
     </div>
   );

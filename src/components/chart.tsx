@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { Gauge, Mode } from "@/lib/pattern";
-import { FILET_INK } from "@/lib/palette";
 import { Chain, DoubleCrochet, SingleCrochet, type SingleCrochetVariant, TurningChain } from "./symbols";
 
 export type ChartParams = {
@@ -11,7 +10,7 @@ export type ChartParams = {
   /** 上の行から順に並んだマスの値（細編み: パレット番号 / 方眼編み: 1=埋まったマス） */
   grid: Uint8Array;
   gauge: Gauge;
-  /** 細編みモードの毛糸の色 */
+  /** 使う毛糸の色（方眼編みは colors[0] の1色） */
   colors: string[];
   /** 薄い色の縁取り色（不要なら undefined） */
   outlines: (string | undefined)[];
@@ -52,6 +51,7 @@ export function buildChart(p: ChartParams): Chart {
   const colX = (c: number) => gridX + c * colW;
   const cell = (r: number, c: number) => p.grid[(p.rows - r) * p.cols + c];
   const tapestryInk = (idx: number) => ({ color: p.colors[idx], outline: p.outlines[idx] });
+  const filetInk = tapestryInk(0);
 
   const guides: ReactNode[] = [];
   for (let k = 5; k < n; k += 5) {
@@ -77,11 +77,11 @@ export function buildChart(p: ChartParams): Chart {
         stitches.push(<SingleCrochet key={key} {...box} {...tapestryInk(cell(r, c))} variant={p.scVariant} />);
       } else if (c === startCol) {
         // 立ち上がりの鎖3目が1目めの長編みの代わりになる
-        stitches.push(<TurningChain key={key} {...box} count={3} color={FILET_INK} />);
+        stitches.push(<TurningChain key={key} {...box} count={3} {...filetInk} />);
       } else if (c % 3 === 0 || cell(r, Math.floor(c / 3)) === 1) {
-        stitches.push(<DoubleCrochet key={key} {...box} color={FILET_INK} />);
+        stitches.push(<DoubleCrochet key={key} {...box} {...filetInk} />);
       } else {
-        stitches.push(<Chain key={key} {...box} h={rowH * 0.36} color={FILET_INK} />);
+        stitches.push(<Chain key={key} {...box} h={rowH * 0.36} {...filetInk} />);
       }
     }
 
@@ -127,7 +127,7 @@ export function buildChart(p: ChartParams): Chart {
   }
 
   // 作り目の鎖
-  const foundationInk = filet ? { color: FILET_INK } : tapestryInk(cell(1, p.cols - 1));
+  const foundationInk = filet ? filetInk : tapestryInk(cell(1, p.cols - 1));
   const chainY = gridY + gridH;
   for (let c = 0; c < n; c++) {
     edges.push(<Chain key={`f${c}`} x={colX(c)} y={chainY} w={colW} h={chainRowH} strokeWidth={sw} {...foundationInk} />);
