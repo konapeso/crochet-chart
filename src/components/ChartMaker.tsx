@@ -3,7 +3,22 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { hexToRgb, rgbToLab } from "@/lib/color";
 import { loadImageFile, type SourceImage } from "@/lib/image";
-import { binarize, cellSizeCm, cropRect, type Gauge, type Mode, quantize, sampleCells, suggestRows } from "@/lib/pattern";
+import { analyzeLines, flattenPaper } from "@/lib/lineart";
+import {
+  binarize,
+  boostChroma,
+  cellSizeCm,
+  smoothCells,
+  cropRect,
+  type CropView,
+  DEFAULT_VIEW,
+  type Gauge,
+  lineCells,
+  type Mode,
+  quantize,
+  sampleCells,
+  suggestRows,
+} from "@/lib/pattern";
 import { countStitches } from "@/lib/usage";
 import { type Yarn, YARNS, yarnLabel } from "@/lib/yarns";
 import Link from "next/link";
@@ -26,6 +41,15 @@ const DEFAULT_GAUGE: Record<Mode, Gauge> = {
 };
 const MAX_COLS: Record<Mode, number> = { tapestry: 120, filet: 60 };
 const MAX_ROWS = 120;
+const MAX_ZOOM = 5;
+
+/** photo = 写真 / illust = 紙に描いたイラスト・線画（紙の影を補正し、細い線を拾う） */
+type ImageKind = "photo" | "illust";
+
+/** 線の感度（0〜100）→ マスを通る線の長さのしきい値（マスの一辺に対する倍率） */
+const lineThreshold = (sensitivity: number) => 1 - (sensitivity / 100) * 0.8;
+/** イラストの減色: 明るさの差を軽く見る（淡い塗りでも色みの近い毛糸を選ぶ） */
+const ILLUST_KL = 2;
 
 function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
   return (
@@ -103,6 +127,11 @@ export function ChartMaker() {
   const [invert, setInvert] = useState(false);
   const [tapestryIds, setTapestryIds] = useState<string[]>(() => YARNS.map((y) => y.id));
   const [filetId, setFiletId] = useState<string | undefined>(() => YARNS[0]?.id);
+  const [imageKind, setImageKind] = useState<ImageKind>("photo");
+  const [lineSensitivity, setLineSensitivity] = useState(75);
+  /** 線の色にする毛糸（"" = 選んだ毛糸のうち一番暗いもの） */
+  const [lineYarnId, setLineYarnId] = useState("");
+  const [view, setView] = useState<CropView>(DEFAULT_VIEW);
 
   // 使う毛糸（細編みの編み込み: 選んだ毛糸すべて / 方眼編み: 1色）。在庫の並び順を保つ
   const palette = useMemo(
@@ -117,12 +146,51 @@ export function ChartMaker() {
   const cell = useMemo(() => cellSizeCm(mode, gauge), [mode, gauge]);
   const colsLimited = Math.min(cols, MAX_COLS[mode]);
 
-  const crop = useMemo(() => (source ? cropRect(source.width, source.height, colsLimited, rows, cell) : null), [source, colsLimited, rows, cell]);
-  const cells = useMemo(() => (source && crop ? sampleCells(source.pixels, crop, colsLimited, rows) : null), [source, crop, colsLimited, rows]);
+  const illust = imageKind === "illust";
+  // イラストは紙の影を補正してから線を探す（写真を選び直すか種類を変えたときだけ計算）
+  const pixels = useMemo(() => (source ? (illust ? flattenPaper(source.pixels) : source.pixels) : null), [source, illust]);
+  const lineInfo = useMemo(() => (pixels && illust ? analyzeLines(pixels) : null), [pixels, illust]);
+
+  const crop = useMemo(
+    () => (source ? cropRect(source.width, source.height, colsLimited, rows, cell, view) : null),
+    [source, colsLimited, rows, cell, view],
+  );
+  const sampled = useMemo(
+    () => (pixels && crop ? sampleCells(pixels, crop, colsLimited, rows, lineInfo) : null),
+    [pixels, crop, colsLimited, rows, lineInfo],
+  );
+  const lines = useMemo(
+    () =>
+      sampled?.lineCoverage && sampled.lineLength ? lineCells(sampled.lineCoverage, sampled.lineLength, lineThreshold(lineSensitivity)) : null,
+    [sampled, lineSensitivity],
+  );
+  // 線の色: 指定した毛糸（使う毛糸に入っていれば）か、使う毛糸のうち一番暗いもの
+  const lineIndex = useMemo(() => {
+    const chosen = palette.findIndex((y) => y.id === lineYarnId);
+    if (chosen >= 0) return chosen;
+    let best = 0;
+    paletteLab.forEach((lab, i) => {
+      if (lab[0] < paletteLab[best][0]) best = i;
+    });
+    return best;
+  }, [palette, paletteLab, lineYarnId]);
   const grid = useMemo(() => {
-    if (!cells || palette.length === 0) return null;
-    return mode === "tapestry" ? quantize(cells, colsLimited, rows, paletteLab, dither) : binarize(cells, threshold, invert);
-  }, [cells, palette, mode, colsLimited, rows, paletteLab, dither, threshold, invert]);
+    if (!sampled || palette.length === 0) return null;
+    return mode === "tapestry"
+      ? illust
+        ? quantize(
+            boostChroma(smoothCells(sampled.labs, colsLimited, rows, lines)),
+            colsLimited,
+            rows,
+            paletteLab,
+            dither,
+            lines,
+            lineIndex,
+            ILLUST_KL,
+          )
+        : quantize(sampled.labs, colsLimited, rows, paletteLab, dither, lines, lineIndex)
+      : binarize(sampled.labs, threshold, invert, lines);
+  }, [sampled, palette, mode, illust, colsLimited, rows, paletteLab, dither, lines, lineIndex, threshold, invert]);
   const chart = useMemo(
     () => grid && buildChart({ mode, cols: colsLimited, rows, grid, gauge, colors, outlines, scVariant }),
     [grid, mode, colsLimited, rows, gauge, colors, outlines, scVariant],
@@ -137,6 +205,7 @@ export function ChartMaker() {
     setError(null);
     try {
       setSource(await loadImageFile(file));
+      setView(DEFAULT_VIEW);
     } catch (e) {
       setError(e instanceof Error ? e.message : "画像を読み込めませんでした");
     } finally {
@@ -170,6 +239,18 @@ export function ChartMaker() {
             }}
           />
         </label>
+        <div className="mt-3">
+          <p className="mb-1 text-xs font-medium text-zinc-600">画像の種類</p>
+          <Segmented
+            value={imageKind}
+            onChange={setImageKind}
+            options={[
+              { value: "photo", label: "写真" },
+              { value: "illust", label: "イラスト・線画" },
+            ]}
+          />
+          {illust && <p className="mt-1.5 text-xs text-zinc-500">紙の影を補正して白くし、細い線を拾って「線の色」で編みます</p>}
+        </div>
         {loading && <p className="mt-2 text-sm text-zinc-500">読み込み中…</p>}
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </Section>
@@ -241,6 +322,43 @@ export function ChartMaker() {
             </div>
           )}
 
+          {illust && (
+            <div className="space-y-1 rounded-xl bg-zinc-50 p-3">
+              <p className="text-xs font-medium text-zinc-600">線画</p>
+              <label className="flex items-center justify-between text-sm">
+                <span>線の感度</span>
+                <span className="tabular-nums text-zinc-500">{lineSensitivity}</span>
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={lineSensitivity}
+                onChange={(e) => setLineSensitivity(Number(e.target.value))}
+                className="h-11 w-full accent-rose-600"
+                aria-label="線の感度"
+              />
+              <p className="text-xs text-zinc-500">上げると細い線・かすれた線も拾います。線が太くなりすぎたら下げてください</p>
+              {!filet && palette.length > 0 && (
+                <label className="flex min-h-11 items-center justify-between gap-3 pt-1 text-sm">
+                  <span className="shrink-0">線の色</span>
+                  <select
+                    value={palette.some((y) => y.id === lineYarnId) ? lineYarnId : ""}
+                    onChange={(e) => setLineYarnId(e.target.value)}
+                    className="h-11 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 text-base"
+                  >
+                    <option value="">自動（いちばん暗い毛糸: {yarnLabel(palette[lineIndex])}）</option>
+                    {palette.map((y) => (
+                      <option key={y.id} value={y.id}>
+                        {yarnLabel(y)} {y.colorName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
+
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <p className="text-xs font-medium text-zinc-600">
@@ -288,7 +406,32 @@ export function ChartMaker() {
               grid={grid}
               colors={colors}
               backdrop={filet && palette[0] && isLight(palette[0]) ? "#52525b" : "#ffffff"}
+              onCropMove={(r) => setView((v) => ({ ...v, cx: (r.x + r.w / 2) / source.width, cy: (r.y + r.h / 2) / source.height }))}
             />
+            <div className="mt-3 flex items-center gap-3">
+              <label htmlFor="crop-zoom" className="shrink-0 text-sm">
+                拡大
+              </label>
+              <input
+                id="crop-zoom"
+                type="range"
+                min={1}
+                max={MAX_ZOOM}
+                step={0.1}
+                value={view.zoom}
+                onChange={(e) => setView((v) => ({ ...v, zoom: Number(e.target.value) }))}
+                className="h-11 min-w-0 flex-1 accent-rose-600"
+              />
+              <span className="w-10 text-right text-sm tabular-nums text-zinc-500">{view.zoom.toFixed(1)}x</span>
+              <button
+                type="button"
+                className="min-h-11 shrink-0 rounded-lg bg-zinc-100 px-3 text-xs text-zinc-700 active:bg-zinc-200"
+                onClick={() => setView(DEFAULT_VIEW)}
+              >
+                リセット
+              </button>
+            </div>
+            <p className="text-xs text-zinc-500">編みたい部分だけを拡大して、元の写真をドラッグで位置合わせすると細部が残りやすくなります</p>
           </Section>
 
           <Section title="4. 編み図" aside={<span className="text-xs text-zinc-500">ピンチで拡大・ダブルタップで全体</span>}>
