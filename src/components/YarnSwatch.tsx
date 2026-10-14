@@ -11,5 +11,5 @@ export function YarnSwatch({ yarn, size = 20 }: { yarn: Yarn; size?: number }) {
 }
 
 export function ShortageBadge() {
-  return <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-red-700">不足</span>;
+  return <span className="rounded-full bg-terra-light px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-terra-dark">不足</span>;
 }

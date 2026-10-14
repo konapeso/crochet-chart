@@ -89,7 +89,7 @@ export function PreviewCompare(props: {
           ref={photoRef}
           width={PREVIEW_W}
           height={height}
-          className="h-auto w-full cursor-grab touch-none rounded-lg ring-1 ring-zinc-200 active:cursor-grabbing"
+          className="h-auto w-full cursor-grab touch-none rounded-2xl ring-[1.5px] ring-ink/70 active:cursor-grabbing"
           aria-label="元の写真（ドラッグで範囲を移動）"
           onPointerDown={(e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -109,11 +109,11 @@ export function PreviewCompare(props: {
             drawPhoto(crop);
           }}
         />
-        <figcaption className="mt-1 text-center text-xs text-zinc-500">元の写真（ドラッグで移動）</figcaption>
+        <figcaption className="mt-1 text-center text-xs text-muted">元の写真（ドラッグで移動）</figcaption>
       </figure>
       <figure>
-        <canvas ref={resultRef} width={PREVIEW_W} height={height} className="h-auto w-full rounded-lg ring-1 ring-zinc-200" />
-        <figcaption className="mt-1 text-center text-xs text-zinc-500">仕上がりイメージ</figcaption>
+        <canvas ref={resultRef} width={PREVIEW_W} height={height} className="h-auto w-full rounded-2xl ring-[1.5px] ring-ink/70" />
+        <figcaption className="mt-1 text-center text-xs text-muted">仕上がりイメージ</figcaption>
       </figure>
     </div>
   );
