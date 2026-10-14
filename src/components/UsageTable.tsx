@@ -3,7 +3,7 @@ import { type ColorUsage, gramsNeeded } from "@/lib/usage";
 import { type Yarn, yarnLabel } from "@/lib/yarns";
 import { ShortageBadge, YarnSwatch } from "./YarnSwatch";
 
-const fmtG = (g: number) => (g < 10 ? g.toFixed(1) : Math.ceil(g).toString());
+export const fmtG = (g: number) => (g < 10 ? g.toFixed(1) : Math.ceil(g).toString());
 
 /** 色ごとの目数集計と必要量。残量が足りない毛糸には「不足」 */
 export function UsageTable({ mode, palette, usage }: { mode: Mode; palette: Yarn[]; usage: ColorUsage[] }) {
