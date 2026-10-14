@@ -39,13 +39,10 @@ const MAX_COLS: Record<Mode, number> = { tapestry: 120, filet: 60 };
 const MAX_ROWS = 120;
 const MAX_ZOOM = 5;
 
-/** photo = 写真 / illust = 紙に描いたイラスト・線画（紙の影を補正し、細い線を拾う） */
-type ImageKind = "photo" | "illust";
-
 /** 線の感度（0〜100）→ マスを通る線の長さのしきい値（マスの一辺に対する倍率） */
 const lineThreshold = (sensitivity: number) => 1 - (sensitivity / 100) * 0.8;
-/** イラストの減色: 明るさの差を軽く見る（淡い塗りでも色みの近い毛糸を選ぶ） */
-const ILLUST_KL = 2;
+/** 減色: 明るさの差を軽く見る（淡い塗りでも色みの近い毛糸を選ぶ） */
+const COLOR_KL = 2;
 
 function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
   return (
@@ -123,7 +120,6 @@ export function ChartMaker() {
   const [invert, setInvert] = useState(false);
   const [tapestryIds, setTapestryIds] = useState<string[]>(() => YARNS.map((y) => y.id));
   const [filetId, setFiletId] = useState<string | undefined>(() => YARNS[0]?.id);
-  const [imageKind, setImageKind] = useState<ImageKind>("photo");
   const [lineSensitivity, setLineSensitivity] = useState(75);
   /** 線の色にする毛糸（"" = 選んだ毛糸のうち一番暗いもの） */
   const [lineYarnId, setLineYarnId] = useState("");
@@ -146,10 +142,9 @@ export function ChartMaker() {
   const cell = useMemo(() => cellSizeCm(mode, gauge), [mode, gauge]);
   const colsLimited = Math.min(cols, MAX_COLS[mode]);
 
-  const illust = imageKind === "illust";
-  // イラストは紙の影を補正してから線を探す（写真を選び直すか種類を変えたときだけ計算）
-  const pixels = useMemo(() => (source ? (illust ? flattenPaper(source.pixels) : source.pixels) : null), [source, illust]);
-  const lineInfo = useMemo(() => (pixels && illust ? analyzeLines(pixels) : null), [pixels, illust]);
+  // 紙の影を補正してから線を探す（写真を選び直したときだけ計算）
+  const pixels = useMemo(() => (source ? flattenPaper(source.pixels) : null), [source]);
+  const lineInfo = useMemo(() => (pixels ? analyzeLines(pixels) : null), [pixels]);
 
   const crop = useMemo(
     () => (source ? cropRect(source.width, source.height, colsLimited, rows, cell, view) : null),
@@ -177,20 +172,9 @@ export function ChartMaker() {
   const grid = useMemo(() => {
     if (!sampled || palette.length === 0) return null;
     return mode === "tapestry"
-      ? illust
-        ? quantize(
-            boostChroma(smoothCells(sampled.labs, colsLimited, rows, lines)),
-            colsLimited,
-            rows,
-            paletteLab,
-            dither,
-            lines,
-            lineIndex,
-            ILLUST_KL,
-          )
-        : quantize(sampled.labs, colsLimited, rows, paletteLab, dither, lines, lineIndex)
+      ? quantize(boostChroma(smoothCells(sampled.labs, colsLimited, rows, lines)), colsLimited, rows, paletteLab, dither, lines, lineIndex, COLOR_KL)
       : binarize(sampled.labs, threshold, invert, lines);
-  }, [sampled, palette, mode, illust, colsLimited, rows, paletteLab, dither, lines, lineIndex, threshold, invert]);
+  }, [sampled, palette, mode, colsLimited, rows, paletteLab, dither, lines, lineIndex, threshold, invert]);
   const toggleTapestry = (id: string) =>
     setTapestryIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
@@ -237,18 +221,7 @@ export function ChartMaker() {
             }}
           />
         </label>
-        <div className="mt-3">
-          <p className="mb-1 text-xs font-medium text-zinc-600">画像の種類</p>
-          <Segmented
-            value={imageKind}
-            onChange={setImageKind}
-            options={[
-              { value: "photo", label: "写真" },
-              { value: "illust", label: "イラスト・線画" },
-            ]}
-          />
-          {illust && <p className="mt-1.5 text-xs text-zinc-500">紙の影を補正して白くし、細い線を拾って「線の色」で編みます</p>}
-        </div>
+        <p className="mt-2 text-xs text-zinc-500">紙の影を補正して白くし、細い線を拾って「線の色」で編みます</p>
         {loading && <p className="mt-2 text-sm text-zinc-500">読み込み中…</p>}
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </Section>
@@ -320,42 +293,40 @@ export function ChartMaker() {
             </div>
           )}
 
-          {illust && (
-            <div className="space-y-1 rounded-xl bg-zinc-50 p-3">
-              <p className="text-xs font-medium text-zinc-600">線画</p>
-              <label className="flex items-center justify-between text-sm">
-                <span>線の感度</span>
-                <span className="tabular-nums text-zinc-500">{lineSensitivity}</span>
+          <div className="space-y-1 rounded-xl bg-zinc-50 p-3">
+            <p className="text-xs font-medium text-zinc-600">線画</p>
+            <label className="flex items-center justify-between text-sm">
+              <span>線の感度</span>
+              <span className="tabular-nums text-zinc-500">{lineSensitivity}</span>
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={lineSensitivity}
+              onChange={(e) => setLineSensitivity(Number(e.target.value))}
+              className="h-11 w-full accent-rose-600"
+              aria-label="線の感度"
+            />
+            <p className="text-xs text-zinc-500">上げると細い線・かすれた線も拾います。線が太くなりすぎたら下げてください</p>
+            {!filet && palette.length > 0 && (
+              <label className="flex min-h-11 items-center justify-between gap-3 pt-1 text-sm">
+                <span className="shrink-0">線の色</span>
+                <select
+                  value={palette.some((y) => y.id === lineYarnId) ? lineYarnId : ""}
+                  onChange={(e) => setLineYarnId(e.target.value)}
+                  className="h-11 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 text-base"
+                >
+                  <option value="">自動（いちばん暗い毛糸: {yarnLabel(palette[lineIndex])}）</option>
+                  {palette.map((y) => (
+                    <option key={y.id} value={y.id}>
+                      {yarnLabel(y)} {y.colorName}
+                    </option>
+                  ))}
+                </select>
               </label>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={lineSensitivity}
-                onChange={(e) => setLineSensitivity(Number(e.target.value))}
-                className="h-11 w-full accent-rose-600"
-                aria-label="線の感度"
-              />
-              <p className="text-xs text-zinc-500">上げると細い線・かすれた線も拾います。線が太くなりすぎたら下げてください</p>
-              {!filet && palette.length > 0 && (
-                <label className="flex min-h-11 items-center justify-between gap-3 pt-1 text-sm">
-                  <span className="shrink-0">線の色</span>
-                  <select
-                    value={palette.some((y) => y.id === lineYarnId) ? lineYarnId : ""}
-                    onChange={(e) => setLineYarnId(e.target.value)}
-                    className="h-11 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 text-base"
-                  >
-                    <option value="">自動（いちばん暗い毛糸: {yarnLabel(palette[lineIndex])}）</option>
-                    {palette.map((y) => (
-                      <option key={y.id} value={y.id}>
-                        {yarnLabel(y)} {y.colorName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-2">
