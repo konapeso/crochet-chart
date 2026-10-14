@@ -129,7 +129,7 @@ export function ChartMaker() {
   );
   const usage = useMemo(() => grid && countStitches(mode, colsLimited, rows, grid, palette.length), [grid, mode, colsLimited, rows, palette]);
   const toggleTapestry = (id: string) =>
-    setTapestryIds((ids) => (ids.includes(id) ? (ids.length > 1 ? ids.filter((x) => x !== id) : ids) : [...ids, id]));
+    setTapestryIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
@@ -242,9 +242,21 @@ export function ChartMaker() {
           )}
 
           <div>
-            <p className="mb-1.5 text-xs font-medium text-zinc-600">
-              使う毛糸{filet ? "（1色）" : "（複数選択・選んだ色だけで減色）"}
-            </p>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-zinc-600">
+                使う毛糸{filet ? "（1色）" : `（選んだ色だけで減色・${tapestryIds.length}/${YARNS.length} 色）`}
+              </p>
+              {!filet && YARNS.length > 0 && (
+                <div className="flex shrink-0 gap-1">
+                  <button type="button" className="min-h-9 rounded-md px-2 text-xs text-rose-700 active:bg-rose-50" onClick={() => setTapestryIds(YARNS.map((y) => y.id))}>
+                    すべて選ぶ
+                  </button>
+                  <button type="button" className="min-h-9 rounded-md px-2 text-xs text-zinc-500 active:bg-zinc-100" onClick={() => setTapestryIds([])}>
+                    すべて外す
+                  </button>
+                </div>
+              )}
+            </div>
             {YARNS.length === 0 ? (
               <p className="text-sm text-zinc-500">
                 在庫に毛糸がありません。<Link href="/yarns" className="text-rose-700 underline">毛糸の在庫</Link>を確認してください
@@ -298,7 +310,9 @@ export function ChartMaker() {
           </Section>
         </>
       ) : (
-        <p className="py-6 text-center text-sm text-zinc-500">写真を選ぶと、プレビューと編み図が表示されます</p>
+        <p className="py-6 text-center text-sm text-zinc-500">
+          {source && palette.length === 0 ? "使う毛糸を1色以上選んでください" : "写真を選ぶと、プレビューと編み図が表示されます"}
+        </p>
       )}
     </div>
   );
