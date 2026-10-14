@@ -394,7 +394,8 @@ export function PatternEditor(props: PatternEditorProps) {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_300px]">
+      {/* スマホでは 編み図 → 段マーカー → 保存 → 記号 の順。広い画面では編み図の右に並べる */}
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_320px] md:items-start">
         <ZoomableView
           width={chart.width}
           height={chart.height}
@@ -413,55 +414,113 @@ export function PatternEditor(props: PatternEditorProps) {
         >
           {chart.content}
         </ZoomableView>
-        <Legend mode={mode} scVariant={scVariant} />
-      </div>
-
-      {/* 段マーカー */}
-      <section className="rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200" aria-label="段マーカー">
-        {currentRow === 0 ? (
-          <button type="button" onClick={() => setRow(1)} className="min-h-12 w-full rounded-lg bg-amber-500 text-base font-semibold text-white active:bg-amber-600">
-            編み始める（1段目から）
-          </button>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-lg font-bold text-amber-900 tabular-nums">
-                {currentRow} <span className="text-sm font-normal">/ {rows} 段目</span>
-              </p>
-              <p className="text-sm font-semibold text-amber-800">{fromRight(currentRow) ? "← 右から左へ" : "左から右へ →"}</p>
-            </div>
-            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-amber-900">
-              <span className="text-amber-700">立ち上がり鎖{filet ? 3 : 1}目 →</span>
-              {runs.map((run, k) => (
-                <span key={k} className="inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-0.5 ring-1 ring-amber-200 tabular-nums">
-                  {filet ? (
-                    run.value ? "埋" : "空"
-                  ) : (
-                    <span className="h-3 w-3 rounded-full ring-1 ring-black/15" style={{ background: colors[run.value] }} />
-                  )}
-                  ×{run.count}
-                </span>
-              ))}
-            </p>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setRow(currentRow - 1)} className="min-h-12 w-24 rounded-lg bg-white text-sm text-amber-900 ring-1 ring-amber-300 active:bg-amber-100">
-                ← 前の段
+        <div className="space-y-4">
+          {/* 段マーカー */}
+          <section className="rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200" aria-label="段マーカー">
+            {currentRow === 0 ? (
+              <button type="button" onClick={() => setRow(1)} className="min-h-12 w-full rounded-lg bg-amber-500 text-base font-semibold text-white active:bg-amber-600">
+                編み始める（1段目から）
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-lg font-bold text-amber-900 tabular-nums">
+                    {currentRow} <span className="text-sm font-normal">/ {rows} 段目</span>
+                  </p>
+                  <p className="text-sm font-semibold text-amber-800">{fromRight(currentRow) ? "← 右から左へ" : "左から右へ →"}</p>
+                </div>
+                <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-amber-900">
+                  <span className="text-amber-700">立ち上がり鎖{filet ? 3 : 1}目 →</span>
+                  {runs.map((run, k) => (
+                    <span key={k} className="inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-0.5 ring-1 ring-amber-200 tabular-nums">
+                      {filet ? (
+                        run.value ? "埋" : "空"
+                      ) : (
+                        <span className="h-3 w-3 rounded-full ring-1 ring-black/15" style={{ background: colors[run.value] }} />
+                      )}
+                      ×{run.count}
+                    </span>
+                  ))}
+                </p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setRow(currentRow - 1)} className="min-h-12 w-24 rounded-lg bg-white text-sm text-amber-900 ring-1 ring-amber-300 active:bg-amber-100">
+                    ← 前の段
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRow(currentRow + 1)}
+                    disabled={currentRow >= rows}
+                    className="min-h-12 flex-1 rounded-lg bg-amber-500 text-base font-semibold text-white active:bg-amber-600 disabled:opacity-40"
+                  >
+                    {currentRow >= rows ? "編み終わり" : `次の段へ（${currentRow + 1}段目）`}
+                  </button>
+                </div>
+                <button type="button" onClick={() => setRow(0)} className="text-xs text-amber-700 underline">
+                  マーカーを消す
+                </button>
+              </div>
+            )}
+          </section>
+          {/* 保存 */}
+          <section className="space-y-2" aria-label="保存">
+            <h3 className="text-sm font-semibold text-zinc-700">保存</h3>
+            <label className="block">
+              <span className="mb-1 block text-xs text-zinc-600">名前</span>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base"
+                placeholder={defaultName}
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={save} className="min-h-12 rounded-lg bg-rose-600 text-sm font-semibold text-white active:bg-rose-700">
+                {savedId ? "上書き保存" : "この端末に保存"}
               </button>
               <button
                 type="button"
-                onClick={() => setRow(currentRow + 1)}
-                disabled={currentRow >= rows}
-                className="min-h-12 flex-1 rounded-lg bg-amber-500 text-base font-semibold text-white active:bg-amber-600 disabled:opacity-40"
+                onClick={makePng}
+                disabled={busy}
+                className="min-h-12 rounded-lg bg-zinc-800 text-sm font-semibold text-white active:bg-zinc-900 disabled:opacity-50"
               >
-                {currentRow >= rows ? "編み終わり" : `次の段へ（${currentRow + 1}段目）`}
+                {busy ? "画像を作成中…" : "画像（PNG）にする"}
               </button>
             </div>
-            <button type="button" onClick={() => setRow(0)} className="text-xs text-amber-700 underline">
-              マーカーを消す
-            </button>
+            {message && (
+              <p className={`text-sm ${message.error ? "text-red-600" : "text-emerald-700"}`} role="status">
+                {message.text}
+                {!message.error && (
+                  <>
+                    {" "}
+                    <Link href="/patterns" className="underline">
+                      保存した編み図
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
+            {png && (
+              <div className="space-y-2 rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200">
+                {/* eslint-disable-next-line @next/next/no-img-element -- 端末内で作った blob URL の画像 */}
+                <img src={png.url} alt={`${title} の編み図の画像`} className="max-h-80 w-full rounded-lg bg-white object-contain ring-1 ring-zinc-200" />
+                <p className="text-xs text-zinc-500">「共有」から「画像を保存」で写真に保存できます（画像の長押しでも保存できます）</p>
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <button type="button" onClick={share} className="min-h-12 rounded-lg bg-zinc-800 text-sm font-semibold text-white active:bg-zinc-900">
+                    共有・写真に保存
+                  </button>
+                  <button type="button" onClick={closePng} className="min-h-12 rounded-lg bg-white px-4 text-sm text-zinc-600 ring-1 ring-zinc-300">
+                    閉じる
+                  </button>
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-zinc-500">保存先はこの端末のブラウザです（別の端末やブラウザとは共有されません）</p>
+          </section>
+          <div className="border-t border-zinc-100 pt-4">
+            <Legend mode={mode} scVariant={scVariant} />
           </div>
-        )}
-      </section>
+        </div>
+      </div>
 
       <div className="border-t border-zinc-100 pt-4">
         <div className="mb-1 flex items-center justify-between">
@@ -472,62 +531,6 @@ export function PatternEditor(props: PatternEditorProps) {
         </div>
         <UsageTable mode={mode} palette={palette} usage={usage} />
       </div>
-
-      {/* 保存 */}
-      <section className="space-y-2 border-t border-zinc-100 pt-4" aria-label="保存">
-        <h3 className="text-sm font-semibold text-zinc-700">保存</h3>
-        <label className="block">
-          <span className="mb-1 block text-xs text-zinc-600">名前</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base"
-            placeholder={defaultName}
-          />
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={save} className="min-h-12 rounded-lg bg-rose-600 text-sm font-semibold text-white active:bg-rose-700">
-            {savedId ? "上書き保存" : "この端末に保存"}
-          </button>
-          <button
-            type="button"
-            onClick={makePng}
-            disabled={busy}
-            className="min-h-12 rounded-lg bg-zinc-800 text-sm font-semibold text-white active:bg-zinc-900 disabled:opacity-50"
-          >
-            {busy ? "画像を作成中…" : "画像（PNG）にする"}
-          </button>
-        </div>
-        {message && (
-          <p className={`text-sm ${message.error ? "text-red-600" : "text-emerald-700"}`} role="status">
-            {message.text}
-            {!message.error && (
-              <>
-                {" "}
-                <Link href="/patterns" className="underline">
-                  保存した編み図
-                </Link>
-              </>
-            )}
-          </p>
-        )}
-        {png && (
-          <div className="space-y-2 rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200">
-            {/* eslint-disable-next-line @next/next/no-img-element -- 端末内で作った blob URL の画像 */}
-            <img src={png.url} alt={`${title} の編み図の画像`} className="max-h-80 w-full rounded-lg bg-white object-contain ring-1 ring-zinc-200" />
-            <p className="text-xs text-zinc-500">「共有」から「画像を保存」で写真に保存できます（画像の長押しでも保存できます）</p>
-            <div className="grid grid-cols-[1fr_auto] gap-2">
-              <button type="button" onClick={share} className="min-h-12 rounded-lg bg-zinc-800 text-sm font-semibold text-white active:bg-zinc-900">
-                共有・写真に保存
-              </button>
-              <button type="button" onClick={closePng} className="min-h-12 rounded-lg bg-white px-4 text-sm text-zinc-600 ring-1 ring-zinc-300">
-                閉じる
-              </button>
-            </div>
-          </div>
-        )}
-        <p className="text-xs text-zinc-500">保存先はこの端末のブラウザです（別の端末やブラウザとは共有されません）</p>
-      </section>
     </div>
   );
 }
