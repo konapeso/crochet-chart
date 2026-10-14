@@ -21,11 +21,11 @@ export function NumberField(props: {
     setDraft(null);
   };
   const step = (d: number) => onChange(clamp(value + d));
-  const btn = "h-11 w-11 shrink-0 rounded-lg bg-zinc-100 text-lg text-zinc-700 active:bg-zinc-200 disabled:opacity-40";
+  const btn = "h-11 w-11 shrink-0 rounded-full border-[1.5px] border-ink/70 bg-cream text-lg text-ink active:bg-oat disabled:border-line disabled:opacity-40";
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-medium text-zinc-600">
+      <label htmlFor={id} className="mb-1 block text-xs font-medium text-muted">
         {label}
       </label>
       <div className="flex items-center gap-1.5">
@@ -38,7 +38,7 @@ export function NumberField(props: {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-2 text-center text-base tabular-nums"
+            className="h-11 w-full rounded-xl border-[1.5px] border-line bg-white px-2 text-center text-base font-bold tabular-nums"
             value={draft ?? String(value)}
             onFocus={(e) => {
               setDraft(String(value));
@@ -50,7 +50,7 @@ export function NumberField(props: {
               if (e.key === "Enter") e.currentTarget.blur();
             }}
           />
-          {suffix && <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-zinc-400">{suffix}</span>}
+          {suffix && <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted/70">{suffix}</span>}
         </div>
         <button type="button" className={btn} aria-label={`${label}を増やす`} disabled={value >= max} onClick={() => step(1)}>
           ＋

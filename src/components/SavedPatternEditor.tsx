@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { decodeGrid, type SavedPattern, type SavedYarn, useHydrated, useSavedPatterns } from "@/lib/patterns";
 import { type Yarn, YARNS } from "@/lib/yarns";
+import { PageTitle } from "./Decorations";
 import { PatternEditor } from "./PatternEditor";
 
 /** 在庫にある毛糸はその情報（残量など）を使い、なければ保存時の名前と色だけで表示する */
@@ -58,12 +59,12 @@ export function SavedPatternEditor() {
   const hydrated = useHydrated();
   const pattern = patterns.find((p) => p.id === id);
 
-  if (!hydrated) return <p className="py-6 text-center text-sm text-zinc-500">読み込み中…</p>;
+  if (!hydrated) return <p className="py-6 text-center text-sm text-muted">読み込み中…</p>;
   if (!pattern) {
     return (
-      <p className="py-6 text-center text-sm text-zinc-500">
+      <p className="py-6 text-center text-sm text-muted">
         編み図が見つかりません。
-        <Link href="/patterns" className="text-rose-700 underline">
+        <Link href="/patterns" className="text-terra-dark underline">
           保存した編み図
         </Link>
       </p>
@@ -71,8 +72,8 @@ export function SavedPatternEditor() {
   }
   return (
     <>
-      <h1 className="text-xl font-bold">{pattern.name}</h1>
-      <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200">
+      <PageTitle en="Edit" ja={pattern.name} />
+      <section className="stitched rounded-[28px] bg-cream px-5 py-6 shadow-[0_2px_10px_rgb(43_42_37/0.06)]">
         <Editor key={pattern.id} pattern={pattern} />
       </section>
     </>

@@ -25,7 +25,7 @@ function Row({ icon, name, note }: { icon: ReactNode; name: string; note?: strin
       {icon}
       <div className="leading-tight">
         <div className="text-sm font-medium">{name}</div>
-        {note && <div className="text-xs text-zinc-500">{note}</div>}
+        {note && <div className="text-xs text-muted">{note}</div>}
       </div>
     </li>
   );
@@ -41,8 +41,8 @@ export function Legend({ mode, scVariant }: { mode: Mode; scVariant: SingleCroch
   return (
     <div>
       <section>
-        <h3 className="mb-1 text-sm font-semibold text-zinc-700">記号</h3>
-        <ul className="divide-y divide-zinc-100">
+        <h3 className="mb-1 text-sm font-semibold text-ink">記号</h3>
+        <ul className="divide-y divide-line/60">
           <Row icon={<Icon><Chain {...box} /></Icon>} name="鎖編み" />
           {filet ? (
             <>
@@ -66,13 +66,13 @@ export function Legend({ mode, scVariant }: { mode: Mode; scVariant: SingleCroch
           />
         </ul>
         {filet && (
-          <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+          <p className="mt-2 text-xs leading-relaxed text-muted">
             埋まったマス＝長編み3目 / 空きマス＝長編み1目＋鎖2目（マスの境目の長編みは隣と共有）
           </p>
         )}
-        <details className="mt-2 text-xs text-zinc-500">
+        <details className="mt-2 text-xs text-muted">
           <summary className="cursor-pointer py-1">その他の記号</summary>
-          <ul className="mt-1 divide-y divide-zinc-100 text-zinc-800">
+          <ul className="mt-1 divide-y divide-line/60 text-ink">
             <Row icon={<Icon><SingleCrochet {...box} variant={scVariant === "x" ? "plus" : "x"} /></Icon>} name="細編み（別表記）" />
             <Row icon={<Icon h={40}><HalfDoubleCrochet {...tall} /></Icon>} name="中長編み" />
             <Row icon={<Icon h={40}><TrebleCrochet {...tall} /></Icon>} name="長々編み" />

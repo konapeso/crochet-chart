@@ -47,8 +47,8 @@ function ToolButton({ active, onClick, children, label }: { active: boolean; onC
       aria-pressed={active}
       aria-label={label}
       onClick={onClick}
-      className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium ${
-        active ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500"
+      className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-bold ${
+        active ? "border-[1.5px] border-ink bg-mustard text-ink" : "text-muted"
       }`}
     >
       {children}
@@ -310,7 +310,7 @@ export function PatternEditor(props: PatternEditorProps) {
   };
 
   const iconBtn =
-    "flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg bg-zinc-100 px-3 text-sm text-zinc-700 active:bg-zinc-200 disabled:opacity-40";
+    "flex h-11 min-w-11 items-center justify-center gap-1 rounded-full border-[1.5px] border-ink/70 bg-cream px-3 text-sm text-ink active:bg-oat disabled:border-line disabled:opacity-40";
   const addable = onAddYarn && !filet ? YARNS.filter((y) => !paletteIds.includes(y.id)) : [];
 
   return (
@@ -318,7 +318,7 @@ export function PatternEditor(props: PatternEditorProps) {
       {/* ツールバー */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <div className="flex flex-1 gap-1 rounded-xl bg-zinc-100 p-1">
+          <div className="flex flex-1 gap-1 rounded-full bg-oat p-1 ring-1 ring-line">
             <ToolButton active={tool === "move"} onClick={() => setTool("move")} label="移動・拡大">
               <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden>
                 <path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />
@@ -348,7 +348,7 @@ export function PatternEditor(props: PatternEditorProps) {
         </div>
         {tool === "paint" &&
           (filet ? (
-            <p className="text-xs text-zinc-500">マスをタップすると「埋まり ⇄ 空き」が切り替わります。なぞると最初のマスと同じにそろいます</p>
+            <p className="text-xs text-muted">マスをタップすると「埋まり ⇄ 空き」が切り替わります。なぞると最初のマスと同じにそろいます</p>
           ) : (
             <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="radiogroup" aria-label="塗る毛糸">
               {palette.map((y) => (
@@ -360,7 +360,7 @@ export function PatternEditor(props: PatternEditorProps) {
                   aria-label={`${yarnLabel(y)} ${y.colorName}`}
                   onClick={() => setBrushId(y.id)}
                   className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full py-1 pr-3 pl-1.5 text-xs ring-1 ${
-                    y.id === brush ? "bg-rose-50 font-medium ring-2 ring-rose-500" : "bg-white text-zinc-500 ring-zinc-200"
+                    y.id === brush ? "bg-terra-light font-medium ring-2 ring-terra" : "bg-cream text-muted ring-line"
                   }`}
                 >
                   <YarnSwatch yarn={y} size={24} />
@@ -376,7 +376,7 @@ export function PatternEditor(props: PatternEditorProps) {
                     onAddYarn?.(e.target.value);
                     setBrushId(e.target.value);
                   }}
-                  className="h-11 shrink-0 rounded-full border border-dashed border-zinc-300 bg-white px-3 text-base text-zinc-500"
+                  className="h-11 shrink-0 rounded-full border border-dashed border-line bg-cream px-3 text-base text-muted"
                 >
                   <option value="">＋ 毛糸を追加</option>
                   {addable.map((y) => (
@@ -388,7 +388,7 @@ export function PatternEditor(props: PatternEditorProps) {
               )}
             </div>
           ))}
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted">
           {tool === "paint" ? "1本指でなぞって塗る・2本指で移動と拡大" : "ピンチで拡大・ダブルタップで全体"}
           {history.present.size > 0 && `・手直し ${history.present.size} マス`}
         </p>
@@ -416,23 +416,23 @@ export function PatternEditor(props: PatternEditorProps) {
         </ZoomableView>
         <div className="space-y-4">
           {/* 段マーカー */}
-          <section className="rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200" aria-label="段マーカー">
+          <section className="rounded-xl bg-mustard-light p-3 ring-1 ring-mustard-dark/60" aria-label="段マーカー">
             {currentRow === 0 ? (
-              <button type="button" onClick={() => setRow(1)} className="min-h-12 w-full rounded-lg bg-amber-500 text-base font-semibold text-white active:bg-amber-600">
+              <button type="button" onClick={() => setRow(1)} className="btn-pill w-full bg-mustard text-base text-ink active:bg-mustard-dark">
                 編み始める（1段目から）
               </button>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-lg font-bold text-amber-900 tabular-nums">
+                  <p className="text-lg font-bold text-ink tabular-nums">
                     {currentRow} <span className="text-sm font-normal">/ {rows} 段目</span>
                   </p>
-                  <p className="text-sm font-semibold text-amber-800">{fromRight(currentRow) ? "← 右から左へ" : "左から右へ →"}</p>
+                  <p className="text-sm font-semibold text-ink">{fromRight(currentRow) ? "← 右から左へ" : "左から右へ →"}</p>
                 </div>
-                <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-amber-900">
-                  <span className="text-amber-700">立ち上がり鎖{filet ? 3 : 1}目 →</span>
+                <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-ink">
+                  <span className="text-muted">立ち上がり鎖{filet ? 3 : 1}目 →</span>
                   {runs.map((run, k) => (
-                    <span key={k} className="inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-0.5 ring-1 ring-amber-200 tabular-nums">
+                    <span key={k} className="inline-flex items-center gap-1 rounded-full bg-cream px-1.5 py-0.5 ring-1 ring-mustard-dark/60 tabular-nums">
                       {filet ? (
                         run.value ? "埋" : "空"
                       ) : (
@@ -443,19 +443,19 @@ export function PatternEditor(props: PatternEditorProps) {
                   ))}
                 </p>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setRow(currentRow - 1)} className="min-h-12 w-24 rounded-lg bg-white text-sm text-amber-900 ring-1 ring-amber-300 active:bg-amber-100">
+                  <button type="button" onClick={() => setRow(currentRow - 1)} className="btn-pill w-24 bg-cream text-sm text-ink active:bg-oat">
                     ← 前の段
                   </button>
                   <button
                     type="button"
                     onClick={() => setRow(currentRow + 1)}
                     disabled={currentRow >= rows}
-                    className="min-h-12 flex-1 rounded-lg bg-amber-500 text-base font-semibold text-white active:bg-amber-600 disabled:opacity-40"
+                    className="btn-pill flex-1 bg-mustard text-base text-ink active:bg-mustard-dark disabled:opacity-40"
                   >
                     {currentRow >= rows ? "編み終わり" : `次の段へ（${currentRow + 1}段目）`}
                   </button>
                 </div>
-                <button type="button" onClick={() => setRow(0)} className="text-xs text-amber-700 underline">
+                <button type="button" onClick={() => setRow(0)} className="text-xs text-muted underline">
                   マーカーを消す
                 </button>
               </div>
@@ -463,31 +463,31 @@ export function PatternEditor(props: PatternEditorProps) {
           </section>
           {/* 保存 */}
           <section className="space-y-2" aria-label="保存">
-            <h3 className="text-sm font-semibold text-zinc-700">保存</h3>
+            <h3 className="text-sm font-semibold text-ink">保存</h3>
             <label className="block">
-              <span className="mb-1 block text-xs text-zinc-600">名前</span>
+              <span className="mb-1 block text-xs text-muted">名前</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base"
+                className="h-11 w-full rounded-xl border-[1.5px] border-line bg-white px-3 text-base"
                 placeholder={defaultName}
               />
             </label>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={save} className="min-h-12 rounded-lg bg-rose-600 text-sm font-semibold text-white active:bg-rose-700">
+              <button type="button" onClick={save} className="btn-pill bg-mustard text-sm text-ink active:bg-mustard-dark">
                 {savedId ? "上書き保存" : "この端末に保存"}
               </button>
               <button
                 type="button"
                 onClick={makePng}
                 disabled={busy}
-                className="min-h-12 rounded-lg bg-zinc-800 text-sm font-semibold text-white active:bg-zinc-900 disabled:opacity-50"
+                className="btn-pill bg-cream text-sm text-ink active:bg-oat disabled:opacity-50"
               >
                 {busy ? "画像を作成中…" : "画像（PNG）にする"}
               </button>
             </div>
             {message && (
-              <p className={`text-sm ${message.error ? "text-red-600" : "text-emerald-700"}`} role="status">
+              <p className={`text-sm ${message.error ? "text-terra-dark" : "text-sage-dark"}`} role="status">
                 {message.text}
                 {!message.error && (
                   <>
@@ -500,32 +500,32 @@ export function PatternEditor(props: PatternEditorProps) {
               </p>
             )}
             {png && (
-              <div className="space-y-2 rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200">
+              <div className="space-y-2 rounded-xl bg-oat p-3 ring-1 ring-line">
                 {/* eslint-disable-next-line @next/next/no-img-element -- 端末内で作った blob URL の画像 */}
-                <img src={png.url} alt={`${title} の編み図の画像`} className="max-h-80 w-full rounded-lg bg-white object-contain ring-1 ring-zinc-200" />
-                <p className="text-xs text-zinc-500">「共有」から「画像を保存」で写真に保存できます（画像の長押しでも保存できます）</p>
+                <img src={png.url} alt={`${title} の編み図の画像`} className="max-h-80 w-full rounded-xl bg-white object-contain ring-1 ring-line" />
+                <p className="text-xs text-muted">「共有」から「画像を保存」で写真に保存できます（画像の長押しでも保存できます）</p>
                 <div className="grid grid-cols-[1fr_auto] gap-2">
-                  <button type="button" onClick={share} className="min-h-12 rounded-lg bg-zinc-800 text-sm font-semibold text-white active:bg-zinc-900">
+                  <button type="button" onClick={share} className="btn-pill bg-mustard text-sm text-ink active:bg-mustard-dark">
                     共有・写真に保存
                   </button>
-                  <button type="button" onClick={closePng} className="min-h-12 rounded-lg bg-white px-4 text-sm text-zinc-600 ring-1 ring-zinc-300">
+                  <button type="button" onClick={closePng} className="btn-pill bg-cream px-4 text-sm text-ink active:bg-oat">
                     閉じる
                   </button>
                 </div>
               </div>
             )}
-            <p className="text-xs text-zinc-500">保存先はこの端末のブラウザです（別の端末やブラウザとは共有されません）</p>
+            <p className="text-xs text-muted">保存先はこの端末のブラウザです（別の端末やブラウザとは共有されません）</p>
           </section>
-          <div className="border-t border-zinc-100 pt-4">
+          <div className="border-t border-line/60 pt-4">
             <Legend mode={mode} scVariant={scVariant} />
           </div>
         </div>
       </div>
 
-      <div className="border-t border-zinc-100 pt-4">
+      <div className="border-t border-line/60 pt-4">
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-700">色ごとの目数と必要量</h3>
-          <Link href="/yarns" className="text-xs text-rose-700 underline">
+          <h3 className="text-sm font-semibold text-ink">色ごとの目数と必要量</h3>
+          <Link href="/yarns" className="text-xs text-terra-dark underline">
             在庫を見る
           </Link>
         </div>
